@@ -1,0 +1,42 @@
+﻿@page "/admin/announcements"
+@inject NavigationManager MyNavigationManager
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.HasClaim("role", "Admin"))
+        {
+            <Card>
+                <PageHeader Title="@Localizer["Announcements"]">
+                    <PageHeaderBreadcrumb>
+                        <Breadcrumb>
+                            <BreadcrumbItem>
+                                <NavLink href="admin"><Icon Type="arrow-left" Theme="outline" /> @Localizer["AdminPanel"]</NavLink>
+                            </BreadcrumbItem>
+                        </Breadcrumb>
+                    </PageHeaderBreadcrumb>
+                </PageHeader>
+                <div>
+                    <Divider Class="divider-header" />
+                </div>
+                <Card Bordered="false">
+                    <h2>@Localizer["NewAnnouncement"]</h2>
+                    <div class="new-subtitle grey-text">
+                        @Localizer["Announcements.NewAnnouncementSubtitle"]
+                    </div>
+                    <CreateAnnouncement></CreateAnnouncement>
+                </Card>
+            </Card>
+        } else
+        {
+            <Result Status="403"
+                        Title="@Localizer["Unauthorized"]"/>
+        }
+    </Authorized>
+</AuthorizeView>
+
+
+
+@code {
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+}

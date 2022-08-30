@@ -1,0 +1,38 @@
+﻿@page "/admin/recovery"
+
+@using TABS.Pages.Applications
+@inject NavigationManager MyNavigationManager
+
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.HasClaim("role", "Admin"))
+        { 
+            <div class="ant-card ant-card-bordered ant-card-body">
+                <PageHeader Title="@Localizer["RecoverApplications"]">
+                    <PageHeaderBreadcrumb>
+                        <Breadcrumb>
+                            <BreadcrumbItem>
+                                <NavLink href="admin"><Icon Type="arrow-left" Theme="outline" /> @Localizer["AdminPanel"]</NavLink>
+                            </BreadcrumbItem>
+                        </Breadcrumb>
+                    </PageHeaderBreadcrumb>
+                </PageHeader>
+                <Divider Style="margin: 0px 0px;" />
+                <ApplicationsTable IsRecovery=true />
+            </div>
+        }
+        else
+        {
+        <Result Status="403"
+                        Title="@Localizer["Unauthorized"]"/>
+        }
+</Authorized>
+    <NotAuthorized>
+        <h1>@Localizer["NotAuthorized"]</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+}

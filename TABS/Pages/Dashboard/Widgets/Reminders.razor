@@ -1,0 +1,241 @@
+﻿@inject UserPreferenceService UserPreferenceService
+@inject ApplicationService ApplicationService
+@inject Global Global
+@inject CrudService CrudService
+@inject UserPreferenceService UserPreferenceService
+@inject WidgetState WidgetState
+@inject LayoutState LayoutState
+@implements IDisposable
+
+<div class="@(LayoutState.collapsed ? "widget-half-width-collapsed": "widget-half-width-uncollapsed")" >
+    <Card Title=@(((string)Localizer["Reminders"]).ToUpper()) Class="dashboard-widget" Size="small">
+        <Extra>
+            @if (WidgetState.editMode)
+            {
+                @if (order == 1)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" Disabled></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" OnClick=@(()=>WidgetState.DecrementOrder("Reminders"))></Button>
+                }
+                @if (order == WidgetState.activeWidgets.Count)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" Disabled Style="margin-left: 5px;"></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" OnClick=@(()=>WidgetState.IncrementOrder("Reminders")) Style="margin-left: 5px;"></Button>
+                }
+            }
+        </Extra>
+        <Body>
+            <div style="overflow: auto; min-height: 220px; max-height: 340px;">
+                @if (loadComplete)
+                {
+                    <div>
+                        <div style="font-size: 16px;">
+                            <b> @Localizer["OverdueTasks"] </b>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div>
+                                @if (overdueEventsDisplay.Count > 0)
+                                {
+                                    foreach (EventDisplay data in overdueEventsDisplay)
+                                    {
+                                        <NavLink href=@data.url class="dashboard-navlinks">
+                                            <div class="event-entry-item">
+                                                @data.eventMessage
+                                            </div>
+                                        </NavLink>
+                                    }
+                                }
+                                else
+                                {
+                                    <div style=" padding-top: 8px; padding-bottom: 8px; padding-left: 15px; padding-right: 15px;">
+                                        @Localizer["Dashboard.NoOverdueTasks"]
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div style="font-size: 16px; margin-top: 20px;">
+                            <b> @Localizer["UpcomingTasks"] </b>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <div>
+                                @if (upcomingEventsDisplay.Count > 0)
+                                {
+                                    foreach (EventDisplay data in upcomingEventsDisplay)
+                                    {
+                                        <NavLink href=@data.url class="dashboard-navlinks">
+                                            <div class="event-entry-item">
+                                                @data.eventMessage
+                                            </div>
+                                        </NavLink>
+                                    }
+                                }
+                                else
+                                {
+                                    <div style=" padding-top: 8px; padding-bottom: 8px; padding-left: 15px; padding-right: 15px;">
+                                        @Localizer["Dashboard.NoUpcomingTasks"]
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div style="display: flex; align-items: center; justify-content: center; margin-top: 70px;">
+                        <Spin size="large" Tip="Loading..." />
+                    </div>
+                }
+            </div>
+
+        </Body>
+    </Card>
+</div>
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+
+    private List<EventData> eventDataList = new();
+    private bool loadComplete = false;
+    private List<EventDisplay> upcomingEventsDisplay = new();
+    private List<EventDisplay> overdueEventsDisplay = new();
+    private int order;
+
+    class EventDisplay
+    {
+        public RenderFragment eventMessage;
+        public string url;
+    }
+
+    class EventData
+    {
+        public Application eventApp;
+        public string moduleName;
+        public DateTime nextUpdate;
+    }
+
+    class EventStringAndURL
+    {
+        public string message;
+        public string url;
+    }
+
+    protected override void OnInitialized()
+    {
+        foreach (Application _app in LayoutState.FavApps)
+        {
+            if (!_app.IsArchived)
+            {
+                ApplicationProperties _appProp = _app.GetApplicationProperties();
+                if (_appProp != null)
+                {
+                    Dictionary<ModuleTypeEnum, Module> appModules = _app.GetModules();
+                    foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+                    {
+                        Module eventModule = appModules[moduleType];
+                        if (eventModule != null)
+                        {
+                            eventDataList.Add(new EventData { eventApp = _app, moduleName = moduleType.ToString(), nextUpdate = eventModule.NextUpdate });
+                        }
+                    }
+                }
+            }
+        }
+        getRecentEvents();
+        LayoutState.OnChange += StateHasChanged;
+        WidgetState.OnChange += StateHasChanged;
+        WidgetState.OnChange += RefreshData;  // We should refresh the data displayed whenever OnChange is invoked
+        order = WidgetState.GetOrderOfWidget("Reminders");
+        loadComplete = true;
+    }
+
+    // We are updating the data in eventDataList with updated data from LayoutState
+    private void RefreshData()
+    {
+        eventDataList.Clear();
+         foreach (Application _app in LayoutState.FavApps)
+        {
+            if (!_app.IsArchived)
+            {
+                ApplicationProperties _appProp = _app.GetApplicationProperties();
+                if (_appProp != null)
+                {
+                    Dictionary<ModuleTypeEnum, Module> appModules = _app.GetModules();
+                    foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+                    {
+                        Module eventModule = appModules[moduleType];
+                        if (eventModule != null)
+                        {
+                            eventDataList.Add(new EventData { eventApp = _app, moduleName = moduleType.ToString(), nextUpdate = eventModule.NextUpdate });
+                        }
+                    }
+                }
+            }
+        }
+        getRecentEvents();
+        order = WidgetState.GetOrderOfWidget("Reminders");
+        loadComplete = true; 
+        StateHasChanged();
+    }
+
+    private void getRecentEvents()
+    {
+
+        List<EventData> overdueEvents = new();
+        overdueEvents = eventDataList.FindAll(e =>
+        e.nextUpdate < DateTime.Today);
+        overdueEvents = overdueEvents.OrderBy(o => o.nextUpdate).ToList();
+        List<EventDisplay> curOverdueEventsDisplay = new();
+        foreach (var data in overdueEvents)
+        {
+            string formattedModuleName = Localizer[data.moduleName];
+            string updateString = Localizer["Dashboard.UpdateTask", data.eventApp.Identification.Name, formattedModuleName];
+            RenderFragment eventMessageFragment =
+    @<div>
+            <b>@data.nextUpdate.ToString("[MMM dd]  ")</b> @updateString
+            </div>;
+            //string dataString = data.nextUpdate.ToString("[MMM dd] ") + "Update " + data.eventApp.Identification.Name + " " + formattedModuleName;
+            string url = "applications/" + data.eventApp.ShortID + "/" + data.moduleName;
+            curOverdueEventsDisplay.Add(new EventDisplay { eventMessage = eventMessageFragment, url = url });
+        }
+        overdueEventsDisplay = curOverdueEventsDisplay;
+
+        List<EventData> upcomingEvents = new();
+        upcomingEvents = eventDataList.FindAll(e =>
+        e.nextUpdate >= DateTime.Today);
+        upcomingEvents = upcomingEvents.OrderBy(o => o.nextUpdate).ToList();
+
+        List<EventDisplay> curUpcomingEventsDisplay = new();
+
+        if (upcomingEvents.Count > 10)
+        {
+            upcomingEvents = upcomingEvents.Take(10).ToList(); ;
+        }
+        foreach (var data in upcomingEvents)
+        {
+            string formattedModuleName = Localizer[data.moduleName];
+            string updateString = Localizer["Dashboard.UpdateTask", data.eventApp.Identification.Name, formattedModuleName];
+            RenderFragment eventMessageFragment = @<div>
+            <b>@data.nextUpdate.ToString("[MMM dd]  ")</b> @updateString
+            </div>;
+            //string dataString = data.nextUpdate.ToString("[MMM dd] ") + "Update " + data.eventApp.Identification.Name + " " + formattedModuleName;
+            string url = "applications/" + data.eventApp.ShortID + "/" + data.moduleName;
+            curUpcomingEventsDisplay.Add(new EventDisplay { eventMessage = eventMessageFragment, url = url });
+        }
+        upcomingEventsDisplay = curUpcomingEventsDisplay;
+    }
+
+    public void Dispose()
+    {
+        LayoutState.OnChange -= StateHasChanged;
+        WidgetState.OnChange -= StateHasChanged;    
+        WidgetState.OnChange -= RefreshData;
+    }
+}

@@ -1,0 +1,46 @@
+﻿.searchbar-container-light ::placeholder {
+    color: rgba(0, 0, 0, 0.25);
+}
+
+.searchbar-container-dark ::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+input {
+    border: none;
+    background: none;
+    width: 100%;
+}
+
+input:focus {
+    outline: 0;
+}
+
+.searchbar-container {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    font-size: 18px;
+}
+
+#clear-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.searchbar-container-light #clear-button {
+    color: rgba(0, 0, 0, 0.20);
+}
+
+.searchbar-container-dark #clear-button {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+.searchbar-container-light #clear-button:hover {
+    color: rgba(0, 0, 0, 0.25);
+}
+
+.searchbar-container-dark #clear-button:hover {
+    color: rgba(255, 255, 255, 0.25);
+}

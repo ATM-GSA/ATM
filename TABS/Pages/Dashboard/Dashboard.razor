@@ -1,0 +1,258 @@
+﻿@page "/"
+@using TABS.Pages.Dashboard.Widgets
+
+@inject NavigationManager NavigationManager
+@inject Global Global
+@inject AuthService _authService
+@inject UserService _userService
+@inject UserPreferenceService _userPreferenceService
+@inject ApplicationService _applicationService
+@inject WidgetState WidgetState
+@inject IStringLocalizer<App> Localizer
+@inject TABS.Shared.LayoutState LayoutState
+
+
+@implements IDisposable
+
+<Card Style="min-width: 500px;" >
+    <PageHeader>
+        <PageHeaderBreadcrumb>
+            <Breadcrumb>
+                <BreadcrumbItem>
+                        @Localizer["Dashboard"] <div style="float: right; margin-bottom: 10px;"> </div>
+                </BreadcrumbItem>
+            </Breadcrumb>
+        </PageHeaderBreadcrumb>
+        <PageHeaderTitle>
+            <div>
+                <div style="float: left; margin-top: 7px;"> @Localizer["Dashboard"] </div>
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+                    @if (!WidgetState.editMode)
+                    {
+                        <div style="margin-left: 10px;">
+                            <Button Icon="@IconType.Outline.Edit" @onclick=@WidgetState.SwitchToEditMode>  @Localizer["CustomizeWidgets"] </Button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="display: flex; flex-wrap: wrap; margin-left: 10px;">
+                            <div>
+                                <Button Icon="@IconType.Outline.Edit" Disabled>  @Localizer["CustomizingWidgets"] </Button>
+                            </div>
+                            <div>
+                                <Button Icon="@IconType.Outline.Plus" OnClick="@(()=>{ _visible = true; })" Type="@ButtonType.Link"> @Localizer["Dashboard.AddWidget"] </Button>
+                            </div>
+                            <div>
+                                <Button Type="@ButtonType.Primary" Loading="_isSaving" OnClick="SaveWidgetPreferences"> @Localizer["Save"]  </Button>
+                                <Button OnClick="CancelWidgetCustomization"> @Localizer["Cancel"]  </Button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </PageHeaderTitle>
+    </PageHeader>
+
+    <Divider Style="margin: 0px 0px;" />
+    <div class="ant-card ant-card-body" style="padding-top: 0px;">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between;">
+            @foreach (Widget activeWidget in WidgetState.activeWidgets)
+            {
+                @generateWidget(activeWidget.widgetName, activeWidget.fullWidth)
+            }
+        </div>
+    </div>
+</Card>
+@{
+    RenderFragment footerNormal = @<Template>
+    <Button OnClick="@HandleAdd" @key="@( "add" )"
+            Type="primary">
+        @Localizer["Add"]
+    </Button>
+    <Button OnClick="@HandleCancel" @key="@( "cancel" )">@Localizer["Cancel"]</Button>
+    </Template>;
+
+    RenderFragment footerNoHidden = @<Template>
+    <Button OnClick="@HandleCancel" @key="@( "cancel" )">@Localizer["Ok"]</Button>
+    </Template>;
+
+}
+
+<Modal Title="@Localizer["Dashboard.ChooseWidgets"]"
+       Class="widget-modal"
+       Visible="@_visible"
+       OnOk=@((WidgetState.hiddenWidgets.Count > 0) ? HandleAdd : HandleCancel)
+       OnCancel="@HandleCancel"
+       Width="1000"
+       Footer=@((WidgetState.hiddenWidgets.Count > 0) ? footerNormal : footerNoHidden)
+       Centered>
+
+    @if (WidgetState.hiddenWidgets.Count > 0)
+    {
+        <div class="widget-cards-arrangement">
+            @foreach (Widget widget in WidgetState.hiddenWidgets)
+            {
+                <WidgetCard isDarkMode=_isDarkMode widgetName=@widget.widgetName/>
+            }
+        </div>
+    } else
+    {
+        <div> @Localizer["Dashboard.AllWidgetsSelected"] </div>
+    }
+</Modal>
+
+
+@code {
+    [CascadingParameter(Name = "Theme")]
+    public bool _isDarkMode { get; set; }
+
+    private SiderTheme siderTheme = SiderTheme.Light;
+
+    RenderFragment generateWidget(string widgetName, bool fullWidth)
+    {
+        if (widgetName == "Reminders")
+        {
+            return @<Reminders/>;
+        } else if (widgetName == "Calendar")
+        {
+            return @<TABS.Pages.Dashboard.Widgets.Calendar/>;
+        } else if (widgetName == "Contact")
+        {
+            return @<TABS.Pages.Dashboard.Widgets.Contact/>
+    ;
+        } else
+        {
+            return null;
+        }
+    }
+
+    private User _currUser { get; set; }
+    private Preferences _userPreference { get; set; }
+    private bool _isSaving { get; set; } = false;
+
+    private List<Widget> allWidgets = new()
+    {
+        // active widgets have are ordered by positive integers, while hidden widgets have an order of 0
+        new Widget { id = 1, order = 1, widgetName = "Reminders", description = "Dashboard.RemindersWidgetDescription", hidden = false, fullWidth = false, hasWidthOption = false, hasHideOption = false },
+        new Widget { id = 2, order = 2, widgetName = "Calendar", description = "Dashboard.CalendarWidgetDescription", hidden = false, fullWidth = false, hasWidthOption = false, hasHideOption = false },
+        new Widget { id = 3, order = 3, widgetName = "Contact", description = "DashboardContactWidgetDescription", hidden = false, fullWidth = false, hasWidthOption = true, hasHideOption = true }
+    };
+
+    bool _visible = false;
+
+    private void HandleAdd(MouseEventArgs e)
+    {
+        _visible = false;
+        WidgetState.AddWidgetsToDashboard();
+    }
+
+    private void HandleCancel(MouseEventArgs e)
+    {
+        _visible = false;
+        WidgetState.ClearWidgetsToAdd();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isDarkMode)
+        {
+            siderTheme = SiderTheme.Dark;
+        }
+        else
+        {
+            siderTheme = SiderTheme.Light;
+        }
+        await loadWidgets();
+        WidgetState.OnChange += StateHasChanged;
+        NavigationManager.LocationChanged += exitEditMode;
+    }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        // This function is launched whenever you navigate to the Dashboard page
+        // Below, we re-fetch the applications data from the DB
+        // and update LayoutState.FavApps since the widgets display data from this list
+        List<Application> favouriteApplications = new();
+        foreach (int id in _userPreference.favouriteApplications.ToList())
+        {
+            Application record = await _applicationService.GetApplicationByID(id);
+            if (record != null && !record.IsDeleted)
+            {
+                 favouriteApplications.Add(record);
+            }
+        }
+        // This will fire an event that tells all widgets to refresh their local displayed data
+        // with the updated data from LayoutState
+        LayoutState.FavApps = favouriteApplications.ToList();
+        WidgetState.RefreshWidgets();
+    }
+
+    private async Task loadWidgets()
+    {
+        string AdID = await _authService.GetUserSID();
+        _currUser = await _userService.GetUserByAdID(AdID);
+        _userPreference = _currUser.GetPreferences();
+
+        // load the user preferences and update the widgets
+        List<int> selectedWidgets = _currUser.GetPreferences().widgets.Select(w => w.id).ToList();
+        foreach (Widget widget in allWidgets)
+        {
+            widget.hidden = !selectedWidgets.Contains(widget.id);
+            int order = selectedWidgets.IndexOf(widget.id);
+            widget.order = order != -1 ? order + 1 : 0;
+            widget.fullWidth = order != -1 ? _currUser.GetPreferences().widgets[order].fullWidth : widget.fullWidth;
+        }
+
+        WidgetState.activeWidgets = allWidgets.Where(w => !w.hidden).OrderBy(o => o.order).ToList();
+        WidgetState.hiddenWidgets = allWidgets.Where(w => w.hidden).OrderBy(o => o.widgetName).ToList();
+    }
+
+    async void exitEditMode(object sender, LocationChangedEventArgs e)
+    {
+        await CancelWidgetCustomization();
+    }
+
+    /// <summary>
+    /// Save the user's widget preferences
+    /// </summary>
+    private async Task SaveWidgetPreferences()
+    {
+        _isSaving = true;
+        WidgetState.SwitchToViewMode();
+
+        // update the user preference
+        _userPreference.widgets = new List<WidgetPreference>();
+        foreach (Widget w in WidgetState.activeWidgets)
+        {
+            // active widgets is already in order so we can add it directly
+            _userPreference.widgets.Add(new WidgetPreference
+            {
+                id = w.id,
+                fullWidth = w.fullWidth
+            });
+        }
+
+        _userPreferenceService.SetPreferences(_userPreference);
+        await _userPreferenceService.SaveUserPreferences();
+
+        _isSaving = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        WidgetState.OnChange -= StateHasChanged;
+        NavigationManager.LocationChanged -= exitEditMode;
+    }
+
+    /// <summary>
+    /// Save the user's widget preferences
+    /// </summary>
+    private async Task CancelWidgetCustomization()
+    {
+        await loadWidgets();
+        WidgetState.SwitchToViewMode();
+    }
+}
+
+

@@ -1,0 +1,35 @@
+﻿.modules-template {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%
+}
+
+.featured-title {
+    width: 100%;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.featured-info-text {
+    color: darkgrey;
+    font-style: italic;
+    width: 100%;
+    margin: 0px;
+    display: flex;
+    align-items: center;
+}
+
+.all-mod-title {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.all-mod-body {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+::deep .placeholder-content {
+    width: 100%;
+}

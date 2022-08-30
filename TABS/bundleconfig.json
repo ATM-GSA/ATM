@@ -1,0 +1,35 @@
+﻿[
+  {
+
+    "outputFileName": "wwwroot/css/dark.min.css",
+
+    "inputFiles": [
+
+      "wwwroot/css/dark.css"
+    ],
+
+    "minify": {
+      "enabled": true,
+      "renameLocals": true
+    },
+
+    "sourceMap": false
+  },
+
+  {
+
+    "outputFileName": "wwwroot/css/light.min.css",
+
+    "inputFiles": [
+
+      "wwwroot/css/light.css"
+    ],
+
+    "minify": {
+      "enabled": true,
+      "renameLocals": true
+    },
+
+    "sourceMap": false
+  }
+]

@@ -1,0 +1,175 @@
+﻿
+@*
+    Renders a single search result item.
+*@
+
+@if (Item.SearchResult.IsLoaded)
+{
+    <div>
+        <div class="list-item">
+            @*Module Name*@
+            <div class="module-name">
+                @{
+                    RenderFragment modName = r =>
+                    {
+                        r.OpenElement(1, "span");
+                        r.AddMarkupContent(1, Item.GetModuleNameResult());
+                        r.CloseElement();
+                    };
+                }
+                @modName
+            </div>
+            <div class="tags">
+                @if (Item.GetModuleStatusFlags() == 0)
+                {
+                    <Tag Class="@("ant-tag ant-tag-" + ModuleStatusTag.getDisplayColor(0))">@Localizer[ModuleStatusTag.getName(0)]</Tag>
+                }
+                else
+                {
+                    foreach (int status in Enum.GetValues(typeof(ModuleStatusFlagEnum)))
+                    {
+                        if ((Item.GetModuleStatusFlags() & status) == status)
+                        {
+                            <Tag Class="@("ant-tag ant-tag-" + ModuleStatusTag.getDisplayColor(status))">@Localizer[ModuleStatusTag.getName(status)]</Tag>
+                        }
+                    }
+                }
+            </div>
+        </div>
+
+        <p class="last-updated">@Localizer["LastUpdated"]: @Item.GetModuleLastUpdated()</p>
+
+        @*Results*@
+        <div class="results-body">
+            @if (Item.IsLoaded())
+            {
+                <div class="results-fields-found-subtitle">
+                    @Localizer["AppDetails.MatchingFieldsFound", Item.GetFieldResults().Count]
+                </div>
+                @foreach (Tuple<string,ResultFieldValue> field in Item.GetFieldResults())
+                {
+                    <div class="@(field.Item2.Nested ? "" : "field-result-container")">
+                        <div>
+                            @{
+                                RenderFragment name = r =>
+                                {
+                                    r.OpenElement(1, "span");
+                                    r.AddMarkupContent(1, field.Item1);
+                                    r.CloseElement();
+                                };
+                                RenderFragment ellipses = r =>
+                                {
+                                    r.OpenElement(1, "span");
+                                    r.AddMarkupContent(1, $"<span class=\"temp-gray\">[...]</span>");
+                                    r.CloseElement();
+                                };
+                            }
+                            @if (field.Item2.Nested && field.Item2.ColumnMatches.Count == 0 && field.Item2.ObjectMatches.Count == 0) {
+                                <span>@name: @ellipses</span>
+                            } else
+                            {
+                                <span>@name: </span>
+                            }
+
+                        </div>
+                        
+                        @if (field.Item2.Nested) // nested tables
+                        {
+                            <div class="nested-table-container">
+                                @*Column matches*@
+                                @if (field.Item2.ColumnMatches.Count > 0)
+                                {
+                                    <div class="results-fields-found-subtitle">
+                                        @Localizer["AppDetails.MatchingColumnsFound", field.Item2.ColumnMatches.Count]
+                                    </div>
+                                    @foreach (string col in field.Item2.ColumnMatches)
+                                    {
+                                        <div>
+                                            @{
+                                                RenderFragment colName = r =>
+                                                {
+                                                    r.OpenElement(1, "span");
+                                                    r.AddMarkupContent(1, col);
+                                                    r.CloseElement();
+                                                };
+                                            }
+                                            @colName
+                                        </div>
+                                    }
+                                }
+
+                                @*Object (row) matches*@
+                                @if (field.Item2.ObjectMatches.Count > 0)
+                                {
+                                    <div class="results-fields-found-subtitle">
+                                        @Localizer["AppDetails.MatchingObjectsFound", field.Item2.ObjectMatches.Count]
+                                    </div>
+                                    @foreach (Tuple<string,string> obj in field.Item2.ObjectMatches)
+                                    {
+                                        <div style="display:flex">
+                                            <div>
+                                                @{
+                                                    RenderFragment objName = r =>
+                                                    {
+                                                        r.OpenElement(1, "span");
+                                                        r.AddMarkupContent(1, obj.Item1);
+                                                        r.CloseElement();
+                                                    };
+                                                }
+                                                
+                                            @objName:
+                                            </div>
+                                            <div class="field-result-value">
+                                                @{
+                                                    RenderFragment objVal = r =>
+                                                    {
+                                                        r.OpenElement(1, "span");
+                                                        r.AddMarkupContent(1, obj.Item2);
+                                                        r.CloseElement();
+                                                    };
+                                                }
+                                            @objVal
+                                            </div>
+                                            
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        } else // non-nested tables
+                        {
+                            <div class="field-result-value">
+                                @if (field.Item2.Value.Trim() == "")
+                                {
+                                    <div class="temp-gray">
+                                        @Localizer["Empty"]
+                                    </div>
+                                } else
+                                {
+                                    RenderFragment val = r =>
+                                    {
+                                        r.OpenElement(1, "span");
+                                        r.AddMarkupContent(1, field.Item2.Value);
+                                        r.CloseElement();
+                                    };
+                                    <div>@val</div>
+                                }
+                                
+                        </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Result Item { get; set; }
+
+    [Parameter]
+    public bool IsLoaded { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+}

@@ -1,0 +1,330 @@
+﻿@namespace TABS.Shared.ModuleTables
+
+@using System.Text.RegularExpressions;
+@inject IStringLocalizer<App> Localizer;
+
+<Table DataSource="EditableModuleData"
+    RowExpandable="@(row => row.Data.Field.Type == FieldDisplay.InputType.NestedTable)"
+    Size="@TableSize.Small"
+    HidePagination
+    PageSize="EditableModuleData.Count"
+    Loading="@IsLoading"
+    Title="@(ShowTitle ? Localizer[Title] : null)"
+    DefaultExpandAllRows="@DefaultExpandAllNested">
+    <RowTemplate>
+        <Column @bind-Field="@context.Field" Style="width: 1px; white-space: nowrap; padding-right: 32px;" Title="@Localizer["Field"]">
+            @Localizer[context.Field.LocalizationKey]
+            @if (!String.IsNullOrEmpty(context.Field.Description))
+            {
+                <Popover Content="@context.Field.Description" Trigger="@(new AntDesign.Trigger[] { AntDesign.Trigger.Click })">
+                    <Button Icon="@IconType.Outline.InfoCircle" Type="@ButtonType.Text" Size="@ButtonSize.Small" Style="color: #8F8F8F" />
+                </Popover>
+            }
+        </Column>
+        <Column @bind-Field="@context.Value" Title="@Localizer["Value"]">
+            @if (context.Field.Type == FieldDisplay.InputType.NestedTable)
+            {
+                <div class="non-editable-cell">
+                    <Text Type="secondary">
+                        @Localizer["DataTable.NestedTableDescription"]
+                    </Text>
+                </div>
+            }
+            else if (IsInEditMode)
+            {
+                @if (context.Field.Type == FieldDisplay.InputType.LongText || context.Field.Type == FieldDisplay.InputType.Link)
+                {
+                    <div style="@(context.Value.Error != null ? "border-radius: 2px; border: 1px solid red;" : "border: none;")">
+                    <TextArea @bind-Value="@context.Value.Value"
+                              DebounceMilliseconds="500"
+                              AutoSize="@true"
+                              AllowClear="@true"
+                              OnChange="@(() => validateLinkInput(context))"
+                              MaxLength="@(context.Field.MaxLength > 0 ? context.Field.MaxLength : int.MaxValue )"
+                              Class="@(context.Value.Error != null ? "link-error" : "no-error")"/>
+                     </div>
+
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.Boolean)
+                {
+                    <SimpleSelect @bind-Value="@context.Value.Value"
+                                  Style="width:120px;">
+                        <SelectOptions>
+                            <SimpleSelectOption Value="False" Label="@Localizer["False"]" />
+                            <SimpleSelectOption Value="True" Label="@Localizer["True"]" />
+                        </SelectOptions>
+                    </SimpleSelect>
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.SingleSelect)
+                {
+                    <SimpleSelect @bind-Value="@context.Value.Value"
+                                  Style="width:200px;">
+                        <SelectOptions>
+                            @foreach ((string option, PresetColor x) in context.Field.Options)
+                            {
+                                <SimpleSelectOption Value="@option" Label="@Localizer[option]" />
+                            }
+                        </SelectOptions>
+                    </SimpleSelect>
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.Date)
+                {
+                    <DatePicker TValue="DateTime?"
+                                Picker="@DatePickerType.Date"
+                                Format="MMMM d, yyyy"
+                                DefaultValue="@(DateTime.TryParse(context.Value.Value, out _dateTryParseOut) ? _dateTryParseOut : DateTime.Now)"
+                                OnChange="input => SetValueAsDateString(input.Date, context)"
+                                Style="width: 240px;" />
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.Number)
+                {
+                    <Input Type="text"
+                           @bind-Value="context.Value.Value"
+                           OnBlur="() => validateIntInput(context)"
+                           OnChange="(string s) => validateIntInput(context)"
+                           DebounceMilliseconds="500"
+                           Style="@(context.Value.Error != null ? "border: 1px solid red; max-width: 200px;" : "max-width: 200px;")" />
+                }
+                else
+                {
+                    <Input Type="text"
+                           @bind-Value="context.Value.Value"
+                           DebounceMilliseconds="500"
+                           MaxLength="@(context.Field.MaxLength > 0 ? context.Field.MaxLength : int.MaxValue )"/>
+                }
+                
+                // Additional content underneath the input field
+                @if (context.Value.Error != null)
+                { // Display error
+                    <AntDesign.Text Type="danger" Style="display: block; font-size: 12px; margin-top: 4px;">
+                        @context.Value?.Error
+                    </AntDesign.Text>
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.Link)
+                {
+                    <AntDesign.Text Type="secondary" Style="display: block; font-size: 12px; margin-top: 4px;">
+                        @Localizer["DataTable.LinkInputInstructions"]
+                    </AntDesign.Text>
+                }
+                else if (context.Field.Type == FieldDisplay.InputType.ShortText || context.Field.Type == FieldDisplay.InputType.LongText)
+                {
+                    if (context.Field.MaxLength > 0)
+                    {
+                        <AntDesign.Text Type="secondary" Style="display: block; font-size: 12px; margin-top: 4px;">
+                            @(Localizer["MaximumCharacters"]): @(context.Field.MaxLength)
+                        </AntDesign.Text>
+                    }
+                }
+            }
+            else
+            {
+                <div class="read-only-col">
+                    @if (String.IsNullOrEmpty(context.Value.Value))
+                    {
+                        <span class="typography-placeholder">@Localizer["Empty"]</span>
+                    }
+                    else if (context.Field.Type == FieldDisplay.InputType.SingleSelect)
+                    {
+                        bool isOption = context.Field.Options.Where((option) =>  context.Value.Value.ToLower() == option.Name.ToLower()).Count() > 0;
+                        PresetColor tagColor = isOption ? 
+                        context.Field.Options.First((option) => context.Value.Value.ToLower() == option.Name.ToLower()).tagColor 
+                        : PresetColor.Red;
+                        // This assumes that the value supplied is always an option
+                        <Tag PresetColor="@tagColor">
+                            @Localizer[context.Value.Value]
+                        </Tag>
+                        if (!isOption)
+                        {
+                            <AntDesign.Text Type="danger" Style="font-size: 12px;">
+                                <Icon Type="@IconType.Outline.ExclamationCircle" Style="margin-right: 4px;"/>@Localizer["DataTable.ValueNotAnOption"]
+                            </AntDesign.Text>
+                        }
+                    }
+                    else if (context.Field.Type == FieldDisplay.InputType.Boolean)
+                    {
+                        // This assumes that the value is always an option
+                        <Tag PresetColor="@boolTagColors[context.Value.Value.ToLower()]">
+                            @Localizer[context.Value.Value]
+                        </Tag>
+                    }
+                    else if (context.Field.Type == FieldDisplay.InputType.Link)
+                    {
+                        
+                        string[] urls = context.Value.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+                        <ul>
+                            @foreach (var url in urls)
+                            {
+                                <li>
+                                    <a href="@url.Trim()" target="_blank" rel="noopener noreferrer">
+                                        @url 
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else if (context.Field.Type == FieldDisplay.InputType.Date)
+                    {
+                        @(DateTime.TryParse(context.Value.Value, out _dateTryParseOut) ? _dateTryParseOut.ToString("MMMM d, yyyy") : "N/A")
+                    }
+                    else
+                    {
+                        @context.Value.Value
+                    }
+                </div>
+            }
+        </Column>
+    </RowTemplate>
+    <ExpandTemplate Context="row" >
+        @if (NestedRenderItems.Count > 0 && Int32.TryParse(row.Data.Value.Value, out _intTryParseOut))
+        {
+            <ErrorBoundary>
+                <ChildContent>
+                    @NestedRenderItems[_intTryParseOut]
+                </ChildContent>
+                <ErrorContent>
+                    <Alert Type="@AlertType.Error"
+                           Message="@Localizer["DataTable.NestedTableError"]"
+                           ShowIcon="true" />
+                </ErrorContent>
+            </ErrorBoundary>
+        }
+        else
+        { 
+            <div>@Localizer["ModulePage.NestedTableError"]</div>
+        }
+    </ExpandTemplate>
+</Table>
+
+
+@code {
+
+    [Parameter]
+    public List<DataDisplay> ModuleData { get; set; } = new List<DataDisplay>() { };
+
+    [Parameter]
+    public EventCallback<List<DataDisplay>> ModuleDataChanged { get; set; }
+
+    [Parameter]
+    public List<RenderFragment> NestedRenderItems { get; set; } = new List<RenderFragment>();
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public bool DefaultExpandAllNested { get; set; } = false;
+
+    // Table settings
+    [CascadingParameter(Name = "IsInEditMode")]
+    public bool IsInEditMode { get; set; }
+
+    [CascadingParameter(Name = "IsLoading")]
+    public bool IsLoading { get; set; }
+
+    [CascadingParameter(Name = "ShowTitle")]
+    public bool ShowTitle { get; set; }
+
+    // PRIVATE
+    private List<DataDisplay> EditableModuleData { get; set; } = new List<DataDisplay>() { };
+    private DateTime _dateTryParseOut;
+    private int _intTryParseOut;
+
+
+    private readonly Dictionary<string, PresetColor> boolTagColors =
+    new Dictionary<string, PresetColor>() {
+        {"true", PresetColor.Green },
+        {"false", PresetColor.Red }
+    };
+    protected override void OnParametersSet()
+    {
+        if (IsInEditMode)
+        {
+            StateHasChanged();
+        }
+        base.OnParametersSet();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        EditableModuleData = ModuleData.Select(dataDisplay => dataDisplay.Clone()).ToList();
+    }
+
+    private void SetValueAsDateString(DateTime input, DataDisplay context)
+    {
+        context.Value.Value = input.ToShortDateString();
+    }
+
+    private void validateIntInput(DataDisplay context)
+    {
+        int num;
+        context.Value.Error = !int.TryParse(context.Value.Value, out num) ? Localizer["DataTable.InvalidInt"] : null;
+
+        if (context.Value.Error != null) return; 
+
+        // check for max value
+        if (context.Field.IntRangeMax != null && context.Field.IntRangeMin != null)
+        {
+            context.Value.Error = (num > context.Field.IntRangeMax || num < context.Field.IntRangeMin) ? Localizer["DataTable.InvalidIntRange", context.Field.IntRangeMin, context.Field.IntRangeMax] : null;
+        }
+        else if (context.Field.IntRangeMax != null)
+        {
+            context.Value.Error = (num > context.Field.IntRangeMax) ? Localizer["DataTable.InvalidUpperRange", context.Field.IntRangeMax] : null;
+        }
+        else if (context.Field.IntRangeMin != null)
+        {
+            context.Value.Error = (num < context.Field.IntRangeMin) ? Localizer["DataTable.InvalidLowerRange", context.Field.IntRangeMin] : null;
+        }
+        return;
+    }
+
+    private void validateLinkInput(DataDisplay context)
+    {
+        if (context.Field.Type != FieldDisplay.InputType.Link) return; 
+        if (context.Value.Value == null) context.Value.Value = "";
+        List<string> urls = context.Value.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+        bool containsInvalidUrl = urls.Any(url => !Regex.IsMatch(url.Trim(), @"^(http|https):\/\/([^\s]*)$"));
+        context.Value.Error = containsInvalidUrl ? Localizer["DataTable.LinkInputInstructions"] : null;
+    }
+
+    /// <summary>
+    /// Propagate non-erroneous changes to the ModuleDataDisplay based on the data entered by the user
+    /// </summary>
+    /// <returns>True if there were changes were made, or False if there were no changes</returns>
+    public async Task<bool> saveModuleData()
+    {
+
+        var isModified = false;
+        // compare the editable module data to the read only given module data
+        for (int i = 0; i < ModuleData.Count; i++)
+        {
+            if (ModuleData[i].Value.Value != EditableModuleData[i].Value.Value
+                && EditableModuleData[i].Value.Error == null)
+            {
+                ModuleData[i].Value.Value = EditableModuleData[i].Value.Value;
+                isModified = true;
+            }
+        }
+        await ModuleDataChanged.InvokeAsync(ModuleData);
+        return isModified;
+    }
+
+    /// <summary>
+    /// Checks for any fields that have invalid user input.
+    /// </summary>
+    /// <returns>True if there is at least one error, and False if not</returns>
+    public bool checkErrors()
+    {
+        return EditableModuleData.Where(row => row.Value.Error != null).ToList().Count > 0;
+    }
+
+    /// <summary>
+    /// Resets input fields to original values given ModuleData,
+    /// resetting all current user edits
+    /// </summary>
+    public void reset()
+    {
+        EditableModuleData = ModuleData.Select(dataDisplay => dataDisplay.Clone()).ToList();
+    }
+
+}

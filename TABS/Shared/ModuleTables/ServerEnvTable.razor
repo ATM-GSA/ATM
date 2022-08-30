@@ -1,0 +1,120 @@
+﻿@using TABS.Shared.NestedTables
+@inject AuthService _authService
+@inject CrudService _crudService
+@implements IModuleTable
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" NestedRenderItems="nestedItems" Title="ServerEnvironment" DefaultExpandAllNested="@true" />
+
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+
+    private List<Server> ServersToHardDelete = new List<Server>();
+    private bool isNestedModified = false;
+
+    private ServerTable serversTable;
+
+    private List<Server> servers = new List<Server>();
+    List<DataDisplay> fieldDisplay;
+    private List<RenderFragment> nestedItems = new List<RenderFragment>() { };
+    private Dictionary<string, ModuleProperty> ModuleProperties = new ServerEnvironment().GetProperties();
+
+    DataTable table;
+
+    protected override void OnInitialized()
+    {
+        initModuleDisplay();
+        nestedItems.Add(@<ServerTable @ref="serversTable" Servers="@servers" />);
+    }
+
+
+    private void initModuleDisplay()
+    {
+
+        fieldDisplay = new List<DataDisplay>()
+        {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Servers", Type = FieldDisplay.InputType.NestedTable },
+                Value = new ValueDisplay("0")
+            }
+        };
+
+        servers = (ApplicationObj != null && ApplicationObj.ServerEnvironment != null) ?
+        ApplicationObj.ServerEnvironment.Servers.Select(server => server).ToList() : new List<Server>();
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+        bool isServersModified = serversTable != null && serversTable.HasChanges();
+
+        if (!isModified && !isServersModified && ApplicationObj.ServerEnvironment != null) return false;
+
+        if (ApplicationObj.ServerEnvironment == null)
+        {
+            ApplicationObj.ServerEnvironment = new ServerEnvironment();
+            ApplicationObj.ServerEnvironment.Application = ApplicationObj;
+        }
+
+        if (serversTable != null)
+        { 
+            servers = serversTable.GetUpdatedServers();
+            ServersToHardDelete = serversTable.GetDeletedServers();
+        }
+
+        ApplicationObj.ServerEnvironment.Servers = servers.Select(server =>
+        {
+            if (server.ServerEnvironment == null)
+            {
+                server.ServerEnvironment = ApplicationObj.ServerEnvironment;
+                server.ServerID = default;
+            }
+            return server;
+        }).ToList();
+
+        // Delete the existing servers from DB
+        foreach (Server server in ServersToHardDelete)
+        {
+            server.ServerEnvironment = null; // need to null this to chill out the entity tracker
+            bool deleted = await _crudService.DeleteAsync(server);
+            if (!deleted) Console.WriteLine("Delete server failed");
+        }
+
+        // Update metadata
+        ApplicationObj.ServerEnvironment.LastUpdate = DateTime.Now;
+        ApplicationObj.ServerEnvironment.LastModifiedBy = await _authService.GetUserSID();
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        ServersToHardDelete = new List<Server>();
+        servers = ApplicationObj.ServerEnvironment.Servers;
+        StateHasChanged();
+        return true;
+    }
+
+    public bool hasErrors()
+    {
+        return false;
+    }
+
+    public void reset()
+    {
+        serversTable?.ResetToDefaults();
+        table?.reset();
+        StateHasChanged();
+    }
+
+}

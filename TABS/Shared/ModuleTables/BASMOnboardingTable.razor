@@ -1,0 +1,112 @@
+﻿@implements IModuleTable
+@inject AuthService _authService
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" Title="BASMOnboarding"/>
+
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    List<DataDisplay> fieldDisplay;
+    DataTable table;
+
+    protected override void OnInitialized()
+    {
+        initModuleDisplay();
+    }
+
+    private void initModuleDisplay()
+    {
+
+        BASMOnboarding AppOnboarding = ApplicationObj.BASMOnboarding != null ? ApplicationObj.BASMOnboarding : new BASMOnboarding();
+        Dictionary<string, ModuleProperty> ModuleProperties = AppOnboarding.GetProperties();
+
+        fieldDisplay = new List<DataDisplay>()
+    {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "AssystSetup", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.AssystSetup.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "IntroEmail", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.IntroEmail.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "PowerUserGuide", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.PowerUserGuide.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "BASMGuide", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.BASMGuide.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "DemoToBASM", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.DemoToBASM.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "ClientIntro", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.ClientIntro.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "AppMonitoring", Type = FieldDisplay.InputType.Boolean},
+                Value = new ValueDisplay(AppOnboarding.AppMonitoring.ToString())
+            },
+        };
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+
+        if (ApplicationObj.BASMOnboarding == null)
+        {
+            ApplicationObj.BASMOnboarding = new BASMOnboarding();
+            ApplicationObj.BASMOnboarding.Application = ApplicationObj;
+            isModified = true;
+        }
+
+        foreach (DataDisplay dataDisplay in fieldDisplay)
+        {
+            DataDisplayConverter.PopulateObjWithDataDisplayValue(ApplicationObj.BASMOnboarding, typeof(BASMOnboarding), dataDisplay);
+        }
+
+        if (isModified)
+        {
+            ApplicationObj.BASMOnboarding.LastUpdate = DateTime.Now;
+            ApplicationObj.BASMOnboarding.LastModifiedBy = await _authService.GetUserSID();
+        }
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        return isModified;
+    }
+
+    public void reset()
+    {
+        table.reset();
+    }
+
+    public bool hasErrors()
+    {
+        return table.checkErrors();
+    }
+}

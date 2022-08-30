@@ -1,0 +1,192 @@
+﻿@using TABS.Data;
+@using TABS.Shared.ModuleTables
+@inject CrudService _crudService;
+@inject MessageService _messageService;
+@using System.Text.Json;
+
+@*
+    This component handles the Add Module pop-up seen on an Application's settings page. Used in ModuleSettings. Allows the user to add a Module
+    to the Application. Module information can be filled out in the pop-up.
+*@
+
+
+@{
+    // custom footer cause we don't like AntDesign's
+    RenderFragment modalFooter = @<Template>
+        <Button OnClick=HandleOk
+                Type="primary"
+                Loading=_isSaving
+                Disabled="(!_modSelected || _selectedModule == null)">
+            @Localizer["Add"]
+        </Button>
+        <Button OnClick=HandleCancel Loading=_isSaving>@Localizer["Cancel"]</Button>
+    </Template>;
+
+     // for some reason, getting an error when I just write "1000px" for Width in the Modal tags
+    string _width = "1000px";
+}
+
+<div>
+    @{
+        bool show = !App.IsArchived && !App.IsDeleted;
+        <Button Type="primary" OnClick="show?OnAddModule:()=>{}" Disabled="show?false:true" class="add-button">@Localizer["AppSettings.AddModule"]</Button>
+    }
+
+    <Modal Title="@Localizer["AppSettings.AddModule"]"
+           Visible=_visible
+           Width=_width 
+           Footer=modalFooter
+           OnCancel=HandleCancel>
+        <div class="dropdown-select">
+            <Select DataSource=_newModules
+                    @bind-Value=_selectedModule
+                    Placeholder="@Localizer["AppSettings.AddModuleDropdownPlaceholder"]"
+                    EnableSearch
+                    AllowClear=true
+                    OnSelectedItemChanged=OnItemSelect
+                    OnClearSelected=OnItemClear
+                    LabelName="Label"
+                    PopupContainerMaxHeight="128px"
+                    Disabled="(_isSaving || !_visible)">
+                <ItemTemplate>
+                    @context.Label
+                </ItemTemplate>
+            </Select>
+        </div>
+        <div class="mod-table">
+            @if (_modSelected && _selectedModule != null)
+            {
+                <ModuleTable @ref=_module typeKey=_selectedModule.Type @bind-ApplicationObj=App IsLoading=_isSaving />
+            }
+        </div>
+    </Modal>
+</div>
+
+@code {
+
+    [Parameter]
+    public Application App { get; set; }
+
+    [Parameter]
+    public EventCallback OnAdd { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private ModuleTable _module;
+
+    private List<ModuleTypeWrapper> _newModules = new(); // all modules that can be added to this app
+    private ModuleTypeWrapper _selectedModule = null; // the moduule selected to be added
+    private bool _modSelected = false;
+
+    private bool _visible = false;
+    private bool _isSaving = false;
+
+    /** This wrapper is required to avoid a bug with Ant Blazor Select **/
+    class ModuleTypeWrapper
+    {
+        public ModuleTypeEnum Type = ModuleTypeEnum.Undefined;
+        public string Label = "";
+
+        public ModuleTypeWrapper(ModuleTypeEnum type, String label) {
+            Type = type;
+            Label = label;
+        }
+    }
+
+    /// <summary>
+    /// Sets the module chosen by the user from the module select box.
+    /// </summary>
+    /// <param name="value"></param>
+    private void OnItemSelect(ModuleTypeWrapper value)
+    {
+        _selectedModule = value;
+        _modSelected = true;
+    }
+
+    /// <summary>
+    /// Clears the module select box.
+    /// </summary>
+    private void OnItemClear()
+    {
+        _selectedModule = null;
+        _modSelected = false;
+        _isSaving = false;
+    }
+
+    /// <summary>
+    /// Opens the Add Module modal.
+    /// </summary>
+    private void OnAddModule()
+    {
+        // reset the values in the modal
+        OnItemClear();
+        LoadModTypes();
+        _visible = true;
+    }
+
+    /// <summary>
+    /// Populates the module type dropdown. Called whenever the modal is opened.
+    /// </summary>
+    /// <returns></returns>
+    private void LoadModTypes()
+    {
+        _newModules.Clear();
+        List<int> availMods = App.GetApplicationProperties().availableModules;
+        // get all the modules that aren't already in the application
+        foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+        {
+            if (!availMods.Contains((int)moduleType))
+            {
+                _newModules.Add(new(moduleType, Localizer[moduleType.ToString()]));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles Ok button click on modal. Closes the modal and adds module to App.
+    /// </summary>
+    private async void HandleOk()
+    {
+        if (_selectedModule != null || !_isSaving) { 
+            if (_modSelected)
+            {
+                if (_module.hasErrors())
+                { // this checks if there are any input errors in the module before saving changes
+                    await _messageService.Error("There are errors. Please fix and try saving again.");
+                    return;
+                }
+
+                _isSaving = true;
+                StateHasChanged();
+
+                // add the module to the application
+                await _module.saveChanges(); // this saves the fields in the table to the Application obj
+                await _crudService.UpdateAsync<Application>(App);
+
+                ApplicationProperties updatedAppProps = new ApplicationProperties{
+                    featuredModules = App.GetApplicationProperties().featuredModules,
+                    availableModules = App.GetApplicationProperties().availableModules
+                };
+                App.Properties = JsonSerializer.Serialize(updatedAppProps);
+                await _crudService.UpdateAsync(App.Identification);
+            }
+            _visible = false;
+            OnItemClear();
+        }
+
+        await OnAdd.InvokeAsync();
+        StateHasChanged();
+
+    }
+
+    /// <summary>
+    /// Handles Cancel button click on modal. Closes the modal.
+    /// </summary>
+    private void HandleCancel()
+    {
+        // do nothing. just close the modal
+        OnItemClear();
+        _visible = false;
+    }
+}

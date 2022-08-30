@@ -1,0 +1,70 @@
+﻿::deep .module-card {
+    width: 300px;
+    height: 300px;
+    float: left;
+    margin: 10px 20px 10px 0px;
+}
+
+::deep .status-tag {
+    font-size: 14px;
+    margin-left: 0px;
+}
+
+.fields-list {
+    margin: 0px;
+    white-space: nowrap;
+    list-style: disc;
+    padding-left: 36px;
+}
+
+.card-title-template {
+    padding: 12px 12px 4px 12px;
+}
+
+.truncate-text {
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+/* Use global font sizes after */
+.card-title-text {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+/* Use global font sizes after */
+.card-last-updated-text {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.card-body-template {
+    padding: 0px 12px
+}
+
+.card-field-preview-title {
+    margin-bottom: 4px;
+}
+
+.card-field-text {
+    margin: 0px;
+}
+
+.card-more-fields-text {
+    margin: 4px 0px;
+    color: darkgrey;
+    font-style: italic;
+}
+
+.card-tags {
+    width: 100%;
+    margin: 0 auto;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.marquee > div {
+    display: inline-block;
+    white-space: no-wrap;
+    transition-timing-function: linear;
+}

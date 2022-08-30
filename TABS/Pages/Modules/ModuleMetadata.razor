@@ -1,0 +1,271 @@
+﻿@inject UserService _userService
+@inject CrudService _crudService
+@inject AuthService _authService
+@inject NavigationManager _navManager
+@inject MessageService _message
+@inject Global Global
+@inject IStringLocalizer<App> Localizer
+
+@using TABS.Shared.ModuleTables
+@using TABS.Shared
+@using AntDesign.Select
+@using System.Linq;
+@using System.Collections.Generic;
+
+<section>
+    <div class="row">
+        <div class="cell">
+            <div class="label cell-container">
+                <Icon Type="calendar" Theme="outline" TwotoneColor="#F5F5F5" Height="15px" Width="15px" Style="margin-right: 8px" />
+                <Text>@Localizer["LastUpdated"]</Text>
+            </div>
+        </div>
+        <div class="cell">
+            <div class="cell-container">
+                <Text Type="secondary">
+                    @(_isSavingChanges ? $"{Localizer["Updating"]}..." : ModuleData.LastUpdate.ToString("MMM d, yyyy h:mm tt"))
+                </Text>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="cell">
+            <div class="label cell-container">
+                <Icon Type="clock-circle" Theme="outline" Height="15px" Width="15px" Style="margin-right: 8px" />
+                <Text>@Localizer["ModulePage.LastUpdatedBy"]</Text>
+            </div>
+        </div>
+        <div class="cell">
+            <div class="cell-container">
+                @if (_isSavingChanges)
+                { <AntDesign.Text Type="secondary">@Localizer["Updating"]...</AntDesign.Text> }
+                else if (lastUpdatedBy != null)
+                { <a href="mailto: @lastUpdatedBy.Email">@(lastUpdatedBy.Name)</a> }
+                else
+                { <AntDesign.Text Type="secondary">@Localizer["ModulePage.UserNotExist"]</AntDesign.Text> }
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="cell">
+            <div class="label cell-container">
+                <Icon Type="check-circle" Theme="outline" TwotoneColor="#F5F5F5" Height="15px" Width="15px" Style="margin-right: 8px" />
+                <Text>@Localizer["Status"]</Text>
+            </div>
+        </div>
+        <div class="cell">
+            <div class="cell-container status-cell @(IsDarkMode ? "dark" : "") @((!IsDisabled && ModuleData.NextUpdate >= DateTime.Now.AddDays(7)) ? "editable-select-cell" : "")" style="height: 100%;">
+                <Select DataSource="@ModuleStatusTag.DefaultTags"
+                        Value=@_displayedStatusValue
+                        ValueName="@nameof(ModuleStatusTag.Value)"
+                        LabelName="@nameof(ModuleStatusTag.Name)"
+                        Bordered="@false"
+                        ShowArrowIcon="@false"
+                        Style="min-width: 190px;"
+                        Disabled="@(IsDisabled || ModuleData.NextUpdate < DateTime.Now.AddDays(7))"
+                        OnDropdownVisibleChange="@(async (open) => 
+                                                   { 
+                                                        if (!open) await SaveStatusIfChanged();
+                                                   })"
+                        OnSelectedItemChanged="@((item) => _displayedStatusValue = item.Value)"
+                >   <ItemTemplate>
+                        <Tag Class="@("ant-tag ant-tag-" + (context as ModuleStatusTag).DisplayColor)">
+                            @(Localizer[(context as ModuleStatusTag).Name])
+                        </Tag>
+                    </ItemTemplate>
+                    <LabelTemplate>
+                        <LabelTemplateItem Context="item"
+                                           TItem="ModuleStatusTag"
+                                           TItemValue="int"
+                                           Class="@("ant-tag ant-tag-" + (context as ModuleStatusTag).DisplayColor)">
+                            <LabelTemplateItemContent>
+                                <span>@(Localizer[(item as ModuleStatusTag).Name])</span>
+                            </LabelTemplateItemContent>
+                        </LabelTemplateItem>
+                    </LabelTemplate>
+
+                </Select>
+                @if(ModuleData.NextUpdate < DateTime.Now.AddDays(7) && !IsDisabled)
+                {
+                    <Tooltip Title=@Localizer["ModulePage.StatusLockedMessage"].ToString()
+                             Trigger="@(new AntDesign.Trigger[] { AntDesign.Trigger.Click})">
+                             <button class="ant-btn ant-btn-text ant-btn-icon-only ant-btn-circle ant-typography ant-typography-secondary">
+                                 <Icon Type="lock" Theme="outline" Height="16px" Width="16px" />
+                             </button>
+                    </Tooltip>    
+                }
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="cell">
+            <div class="label cell-container">
+                <Icon Type="calendar" Theme="outline" Height="16px" Width="16px" Style="margin-right: 8px" />
+                <Text>@Localizer["ModulePage.NextUpdateRequired"]</Text>
+            </div>
+        </div>
+        <div class="cell">
+            <div class="cell-container 
+                          @((ModuleData.NextUpdate < DateTime.Now.AddDays(7) ? "ant-form-item-has-warning" : ""))
+                           @((ModuleData.NextUpdate < DateTime.Now ? "ant-form-item-has-error" : ""))">
+                @if (IsDisabled)
+                {
+                    <div>@ModuleData.NextUpdate.ToString("MMMM d, yyyy")</div>
+                } else
+                {
+                    <DatePicker Value="@ModuleData.NextUpdate"
+                            Picker="@DatePickerType.Date"
+                            Format="MMMM d, yyyy"
+                            Size="@DatePickerSize.Small"
+                            AllowClear="@false"
+                            SuffixIcon="@null"
+                            ShowToday="false"
+                            DisabledDate="date => date <= DateTime.Now.AddDays(7)"
+                            OnChange="UpdateNextDate"
+                            OnOpenChange="(async (open) => {
+                                              if (!open && _dateWasUpdated)
+                                              {
+                                                  await SaveChanges();
+                                                  _dateWasUpdated = false;
+                                              }
+                                          })"
+                            Style="min-width: 220px;" 
+                            Disabled="@IsDisabled"
+                            >
+                        <RenderExtraFooter>
+                            <div class="date-picker-footer-content">
+                                <Icon Type="info-circle" Theme="outline" Style="margin-right: 6px; padding-top: 4px;"/>
+                                <div>
+                                     @Localizer["ModulePage.MinNextUpdateRequired", 8]
+                                </div>
+                            </div>
+                        </RenderExtraFooter>        
+                    </DatePicker>
+                    }
+                @if (ModuleData.NextUpdate < DateTime.Now)
+                {
+                        <Icon Type="clock-circle" Theme="outline" Class="ant-typography ant-typography-danger" Height="16px" Width="16px" Style="margin-left: 6px; margin-right: 4px;" />
+                        <span class="ant-typography ant-typography-danger" style="margin-top: 1px;">@Localizer["Overdue"]</span>
+                } 
+                else if (ModuleData.NextUpdate < DateTime.Now.AddDays(7))
+                {
+                    <Icon Type="clock-circle" Theme="outline" Class="ant-typography ant-typography-warning" Height="16px" Width="16px" Style="margin-left: 6px; margin-right: 4px;" />
+                    <span class="ant-typography ant-typography-warning" style="margin-top: 1px;">@Localizer["ModulePage.DueWithinAWeek"]</span>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+
+    [Parameter]
+    public ModuleTypeEnum TypeKey { get; set; }
+
+    [Parameter]
+    public Application ApplicationObj { get; set; }
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    [Parameter]
+    public bool IsDisabled { get; set; } = false;
+
+    [CascadingParameter(Name = "Theme")]
+    public bool IsDarkMode  {get; set; } = false;
+
+    private List<int> _lastStatusesValues = new List<int>();
+    private List<int> _displayedStatusesValues= new List<int>();
+
+    private int _displayedStatusValue = 0; 
+
+    private TABS.Data.Module ModuleData;
+    private User lastUpdatedBy { get; set; } = null;
+
+    private bool _dateWasUpdated = false;
+
+    private bool _isSavingChanges { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        ModuleData = ApplicationObj.GetModules()[TypeKey];
+        _displayedStatusValue = ModuleData.StatusFlags;
+    }
+
+    protected async override Task OnParametersSetAsync()
+    {
+        ModuleData = ApplicationObj.GetModules()[TypeKey];
+        _displayedStatusValue = ModuleData.StatusFlags;
+        await NotifyUpdate();
+    }
+
+    // Called by Index when the app has new changes
+    public async Task NotifyUpdate()
+    {
+        if (ModuleData.LastModifiedBy != null)
+        {
+            lastUpdatedBy = await _userService.GetUserByAdID(ModuleData.LastModifiedBy);
+
+            if (lastUpdatedBy == null)
+            {
+                // If it is still null, then this user does not exist anymore
+                ModuleData.LastModifiedBy = null;
+                await _crudService.UpdateAsync(ModuleData);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task SaveStatusIfChanged()
+    {
+        if (_displayedStatusValue != ModuleData.StatusFlags)
+        {
+            ModuleData.StatusFlags = _displayedStatusValue;
+            await SaveChanges();
+        }
+    }
+
+    private void UpdateNextDate(DateTimeChangedEventArgs args)
+    {
+        if (ModuleData.NextUpdate == args.Date) return;
+
+        ModuleData.NextUpdate = args.Date;
+        _dateWasUpdated = true;
+        StateHasChanged();
+    }
+
+    private async Task SaveChanges() // Save application to DB
+    {
+        _isSavingChanges = true;
+        StateHasChanged();
+
+        // Early back-out
+        Application appDeleteTest = await _crudService.GetRecordAsync<Application>(ApplicationObj.ApplicationID);
+        if (appDeleteTest == null || appDeleteTest.IsDeleted)
+        {
+            // Show app deleted toast message
+            _message.Warning(Localizer["AppDetails.DeletedAppTitle"].ToString());
+
+            _isSavingChanges = false;
+            StateHasChanged();
+
+            // Take the user back to app details
+            _navManager.NavigateTo(Global.GetAppDetailsURL(ApplicationObj.ShortID)); 
+            return;
+        }
+
+        ModuleData.LastModifiedBy = await _authService.GetUserSID();
+        ModuleData.LastUpdate = DateTime.Now;
+
+        await _crudService.UpdateAsync(ModuleData);
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        await NotifyUpdate();
+
+        _isSavingChanges = false;
+        StateHasChanged();
+
+    }
+}

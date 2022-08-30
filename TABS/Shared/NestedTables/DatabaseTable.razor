@@ -1,0 +1,233 @@
+﻿@using TABS.Shared.Forms
+@inject AntDesign.ModalService _modalService
+@inject IStringLocalizer<App> Localizer
+
+<Table DataSource="Rows" Loading="Rows == null" HidePagination Size="@TableSize.Small">
+    <Column @bind-Field="@context.Database" Title="@Localizer[ModuleProperties["Name"].LocalizationKey]">
+        @context.Database.Name
+    </Column>
+    <Column @bind-Field="@context.Database" Title="@Localizer[ModuleProperties["URL"].LocalizationKey]">
+        @if (context.Database.URL != null && (context.Database.URL.StartsWith("https://") || context.Database.URL.StartsWith("http://")))
+        {
+            <a href="@context.Database.URL" target="_blank" rel="noopener noreferrer">@context.Database.URL</a>
+        } else
+        {
+            @context.Database.URL
+        }
+    </Column>
+    <Column @bind-Field="@context.Database" Title="@Localizer[ModuleProperties["Type"].LocalizationKey]">
+        <Tag PresetColor="@tagColorMap[context.Database.Type]">
+            @Localizer[context.Database.Type.ToString()]
+        </Tag>
+    </Column>
+    <Column @bind-Field="@context.Database" Title="@Localizer[ModuleProperties["Version"].LocalizationKey]">
+        @context.Database.Version
+    </Column>
+    <Column @bind-Field="@context.Database" Title="@Localizer[ModuleProperties["Platform"].LocalizationKey]"> 
+        @context.Database.Platform
+    </Column>
+    @if (!_isDisabled)
+    {
+        <ActionColumn>
+            <Button Type="@ButtonType.Dashed" Size="@ButtonSize.Small" OnClick="() => OpenEditModal(context.Id)"
+                Disabled=@_modalOpen>
+                @Localizer["Edit"]
+                </Button>
+            <Popconfirm Title="@Localizer["DeleteConfirmationGeneric"]"
+                        OnConfirm="() => DeleteRow(context)"
+                        OkText="@Localizer["YesDelete"]"
+                        CancelText="@Localizer["Cancel"]"
+                        ArrowPointAtCenter="true">
+                <Button Type="@ButtonType.Link" Danger="@true" Size="@ButtonSize.Small">@Localizer["Delete"]</Button>
+            </Popconfirm>
+        </ActionColumn>
+    }
+</Table>
+@if (!_isDisabled)
+{
+    <Button Type="@ButtonType.Link" 
+            Style="margin-bottom:16px" 
+            Size="@ButtonSize.Small" 
+            OnClick="OpenAddNewModal"
+            Disabled=@_modalOpen>
+        + @Localizer["ModuleTable.AddNewRow"]
+    </Button>
+}
+
+@code {
+
+    [Parameter]
+    public List<Database> Databases { get; set; }
+
+    [CascadingParameter(Name = "IsDisabled")]
+    private bool _isDisabled { get; set; }
+
+    private bool _wasDisabled = true;
+
+    private Dictionary<string, ModuleProperty> ModuleProperties = new Database().GetProperties();
+
+    Dictionary<Database.DatabaseType, PresetColor> tagColorMap = new Dictionary<Database.DatabaseType, PresetColor>()
+    {
+        { Database.DatabaseType.Development, PresetColor.Cyan },
+        { Database.DatabaseType.QA, PresetColor.Green },
+        { Database.DatabaseType.QC, PresetColor.GeekBlue },
+        { Database.DatabaseType.Test, PresetColor.Red },
+        { Database.DatabaseType.Production, PresetColor.Gold }
+    };
+
+    class Row
+    {
+        public int Id { get; set; }
+        public Database Database { get; set; }
+    }
+    private int nextId = 0;
+    private List<Row> Rows;
+    private List<Row> _deletedInitialRows = new List<Row>();
+    private bool _dbsWereEdited = false;
+    private ModalRef _modalRef;
+    private bool _modalOpen = false;
+
+    protected override void OnInitialized()
+    {
+        ResetToDefaults();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_wasDisabled != _isDisabled)
+        {
+            ResetToDefaults();
+            _wasDisabled = _isDisabled;
+        }
+    }
+
+
+    private void DeleteRow(Row rowToDelete)
+    {
+        Rows = Rows.Where(row => row.Id != rowToDelete.Id).ToList();
+        if (rowToDelete.Database.DatabaseID != default) _deletedInitialRows.Add(rowToDelete);
+    }
+
+    private async Task AddRow(Database newDB)
+    {
+        Row newRow = new Row() { Id = nextId, Database = newDB };
+        nextId++;
+
+        Rows.Add(newRow);
+        await CloseModal();
+    }
+
+    private async Task UpdateRow(int rowId, Database updatedDatabase)
+    {
+        Database CurrentDatabase = Rows.First(row => row.Id == rowId).Database;
+        CurrentDatabase.Name = updatedDatabase.Name;
+        CurrentDatabase.Platform = updatedDatabase.Platform;
+        CurrentDatabase.Type = updatedDatabase.Type;
+        CurrentDatabase.URL = updatedDatabase.URL;
+        CurrentDatabase.Version = updatedDatabase.Version;
+
+        if (CurrentDatabase.DatabaseID != default) _dbsWereEdited = true;
+        await CloseModal();
+
+    }
+
+    private async Task OpenAddNewModal()
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+            {
+                Title = Localizer["DatabaseTable.AddNew"].ToString(),
+                Footer = null,
+                DestroyOnClose = true,
+                MaskClosable = false,
+                OnCancel = async (e) => { await CloseModal(); } , 
+                Content =
+    @<AddDatabaseForm OnSubmitSuccess="AddRow" OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null)
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+
+    private async Task OpenEditModal(int rowId)
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["DatabaseTable.Edit"].ToString(),
+            Footer = null,
+            DestroyOnClose = true,
+            MaskClosable = false,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =
+    @<AddDatabaseForm CurrentDatabase="@(Rows.First(row => row.Id == rowId).Database)" OnSubmitSuccess="(newDB) => UpdateRow(rowId, newDB)" OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null)
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        if (_modalRef != null) 
+        { 
+            await _modalRef.CloseAsync();
+            _modalRef = null;
+        }
+        _modalOpen = false;
+        StateHasChanged();
+    }
+
+    // ====== PUBLIC FUNCTIONS ================
+    public bool HasChanges()
+    {
+        bool hasNewlyAdded = Rows.Where(row => row.Database.DatabaseID == default).Count() > 0;
+        bool existingDeleted = _deletedInitialRows.Count > 0;
+        return hasNewlyAdded || existingDeleted || _dbsWereEdited;
+    }
+
+    public List<Database> GetDeletedDatabases()
+    {
+        return _deletedInitialRows.Select(row => row.Database).ToList();
+    }
+
+    public List<Database> GetUpdatedDatabases()
+    {
+        return Rows.Select(row => row.Database).ToList();
+    }
+
+    public void ResetToDefaults()
+    {
+        nextId = 0;
+        _dbsWereEdited = false;
+        _deletedInitialRows = new List<Row>();
+
+        if (Databases == null) Databases = new List<Database>();
+        Rows = Databases.Select(database =>
+        {
+            nextId++;
+            return new Row()
+            {
+                Id = nextId - 1,
+                Database = new Database()
+                {
+                    DatabaseID = database.DatabaseID,
+                    DatabaseEnvironment = database.DatabaseEnvironment,
+                    Name = database.Name,
+                    Platform = database.Platform,
+                    Type = database.Type,
+                    URL = database.URL,
+                    Version = database.Version
+                }
+            };
+        }).ToList();
+    }
+
+}

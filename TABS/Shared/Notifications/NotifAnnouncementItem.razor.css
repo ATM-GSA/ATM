@@ -1,0 +1,24 @@
+﻿.announcement-content {
+    display: flex;
+}
+
+::deep .announcement-icon {
+    font-size: x-large;
+}
+
+.announcement-body {
+    padding: 0px 16px 0px 8px;
+}
+
+.announcement-metadata {
+    font-size: 12px;
+}
+
+.announcement-message {
+    padding: 0px 8px 0px 0px;
+    font-size: 14px;
+}
+
+.announcement-title {
+    padding-right: 10px;
+}

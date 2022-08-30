@@ -1,0 +1,49 @@
+﻿section {
+    display: table;
+}
+
+.row {
+    display: table-row;
+}
+
+.cell {
+    display: table-cell;
+    vertical-align: middle;
+}
+
+.cell-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    font-size: 12px;
+    min-height: 32px;
+}
+
+.cell-container-editable {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    font-size: 12px;
+    min-height: 32px;
+}
+
+.editable-select-cell:hover {
+    background-color: #F5F5F5;
+}
+
+.dark.editable-select-cell:hover {
+    background-color: rgb(255 255 255 / 8%)
+}
+
+.label {
+    width: 160px;
+}
+
+.date-picker-footer-content {
+    display: flex;
+    flex-direction: row;
+    line-height: 1.5;
+    padding: 8px 4px;
+}

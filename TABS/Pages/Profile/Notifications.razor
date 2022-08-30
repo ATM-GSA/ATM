@@ -1,0 +1,149 @@
+﻿@using System.Globalization
+@inject IStringLocalizer<App> Localizer
+@inject UserPreferenceService UserPreferenceService
+
+<div class="ant-card ant-card-body" style="max-width: 900px;">
+    <section>
+        <h2 class="ant-typography">@Localizer["Settings.AppNotifications"]</h2>
+
+        <div class="item-wrapper @(isDarkMode ? "item-wrapper-dark":"")">
+            <div>
+                <h3 class="ant-typography">@Localizer["Updates"]</h3>
+                <Text Type="secondary">@Localizer["Settings.AppUpdatesSmall"]</Text>
+            </div>
+            <div>
+                <Switch @bind-Checked="appUpdates" OnChange="updatesChange" />
+            </div>
+        </div>
+
+        <div class="item-wrapper @(isDarkMode ? "item-wrapper-dark":"")">
+            <div>
+                <h3 class="ant-typography">@Localizer["Reminders"]</h3>
+                <Text Type="secondary">@Localizer["Settings.AppRemindersSmall"]</Text>
+            </div>
+            <div>
+                <Switch @bind-Checked="appReminders" OnChange="remindersChange" />
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2 class="ant-typography">@Localizer["Settings.EmailNotifications"]</h2>
+        <div class="item-wrapper @(isDarkMode ? "item-wrapper-dark":"")">
+            <div>
+                <h3 class="ant-typography">@Localizer["Settings.EmailOff"]</h3>
+                <Text Type="secondary">@Localizer["Settings.EmailOffSmall"]</Text>
+            </div>
+            <div>
+                <Switch @bind-Checked="emailOff" OnChange="emailChange" />
+            </div>
+        </div>
+        <div class="item-wrapper @(isDarkMode ? "item-wrapper-dark":"") item-wrapper-vertical @(emailOff ? "disabled-section" : "")">
+            <div id="turn-off-email">
+                <h3 class="ant-typography @(emailOff ? "ant-typography-disabled" : "")">@Localizer["Settings.EmailFreq"]</h3>
+                <Text Type="secondary" Disabled="@emailOff">@Localizer["Settings.EmailFreqSmall"]</Text>
+                </div>
+            <div>
+                <RadioGroup @bind-Value="emailUpdatesFreq" TValue="EmailFrequencyEnum" OnChange="emailFreqChange">
+                    <Radio RadioButton Disabled="@emailOff" Value="@(EmailFrequencyEnum.Daily)">@Localizer["Daily"]</Radio>
+                    <Radio RadioButton Disabled="@emailOff" Value="@(EmailFrequencyEnum.Weekly)">@Localizer["Weekly"]</Radio>
+                </RadioGroup>
+            </div>
+        </div>
+        <div class="item-wrapper @(isDarkMode ? "item-wrapper-dark":"") item-wrapper-vertical @(emailOff || emailUpdatesFreq == EmailFrequencyEnum.Daily ? "disabled-section" : "")">
+            <div id="turn-off-email">
+                <h3 class="ant-typography @(emailOff || emailUpdatesFreq == EmailFrequencyEnum.Daily ? "ant-typography-disabled" : "")">@Localizer["Settings.EmailFreq.DayOfWeek"]</h3>
+                <Text Type="secondary" Disabled="@(emailOff || emailUpdatesFreq == EmailFrequencyEnum.Daily)">@Localizer["Settings.EmailFreq.SelectDayOfWeek"].</Text>
+                </div>
+            <div>
+                <Select DataSource="@emailDigestDays"
+                    @bind-Value="@selectedEmailDigestDay"
+                    OnSelectedItemChanged="(DayOfWeek _) => selectedEmailDigestDayChange()"
+                    Disabled="emailOff || emailUpdatesFreq == EmailFrequencyEnum.Daily"
+                    DropdownMatchSelectWidth="@("128px")">
+                    
+                <ItemTemplate>
+                    @DateTimeFormatInfo.CurrentInfo.GetDayName( context )
+                </ItemTemplate>
+                <LabelTemplate>
+                    <span class="ant-select-selection-item">
+                        @DateTimeFormatInfo.CurrentInfo.GetDayName( context )
+                    </span>
+                </LabelTemplate>
+            </Select>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    bool appUpdates { get; set; }
+    bool appReminders { get; set; }
+    bool emailOff { get; set; }
+    EmailFrequencyEnum emailUpdatesFreq { get; set; }
+
+    List<DayOfWeek> emailDigestDays { get; set; } = new() { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
+    DayOfWeek selectedEmailDigestDay { get; set; } = DayOfWeek.Friday;
+
+    Preferences Preferences { get; set; }
+
+    [CascadingParameter(Name = "Theme")]
+    private bool isDarkMode { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+
+        appUpdates = Preferences.notificationPreferences.updates;
+        appReminders = Preferences.notificationPreferences.reminders;
+        emailOff = Preferences.notificationPreferences.emailOff;
+        emailUpdatesFreq = (EmailFrequencyEnum) Preferences.notificationPreferences.emailFreq;
+        selectedEmailDigestDay = (DayOfWeek) Preferences.notificationPreferences.emailWeekDigDay;
+
+        return base.OnInitializedAsync();
+    }
+
+    public void updatesChange()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+        Preferences.notificationPreferences.updates = appUpdates;
+        UpdateEmailPreferences();
+    }
+
+    public void remindersChange()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+        Preferences.notificationPreferences.reminders = appReminders;
+        UpdateEmailPreferences();
+
+    }
+
+    public void emailChange()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+        Preferences.notificationPreferences.emailOff = emailOff;
+        UpdateEmailPreferences();
+
+    }
+
+    public void emailFreqChange()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+        Preferences.notificationPreferences.emailFreq = (int)emailUpdatesFreq;
+        UpdateEmailPreferences();
+
+    }
+
+    public void selectedEmailDigestDayChange()
+    {
+        Preferences = UserPreferenceService.GetPreferences();
+        Preferences.notificationPreferences.emailWeekDigDay = (int)selectedEmailDigestDay;
+        UpdateEmailPreferences();
+    }
+
+    public async void UpdateEmailPreferences()
+    {
+        UserPreferenceService.SetPreferences(Preferences);
+        await UserPreferenceService.SaveUserPreferences();
+    }
+}

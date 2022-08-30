@@ -1,0 +1,67 @@
+﻿@inject UserService UserService
+
+@if (_isLoaded)
+{
+    <div class="announcement-content">
+        <div class="temp-blue">
+            <Icon Type="notification" Theme="outline" Class="announcement-icon" />
+        </div>
+        <div class="announcement-body">
+            <div class="announcement-title">
+                @Announcement.title
+            </div>
+            <div class="announcement-metadata temp-gray">
+                @getAnnouncementMessage()
+            </div>
+            @if (@Announcement.message != null)
+            {
+                <div class="announcement-message">
+                    @Announcement.message
+                </div>
+            }
+
+        </div>
+    </div>
+} 
+else
+{
+    <Skeleton Active=true />
+}
+
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public TABS.Data.Announcement Announcement { get; set; }
+
+    [Parameter]
+    public User SenderUser { get; set; }
+
+    private bool _isLoaded = false;
+
+    protected override void OnInitialized()
+    {
+        _isLoaded = true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        _isLoaded = true;
+    }
+
+    private string getAnnouncementMessage()
+    {
+        string sender;
+        if (SenderUser != null)
+        {
+            sender = SenderUser.Name;
+        } else
+        {
+            sender = "Deleted User";
+        }
+        return Localizer["Notifs.AnnouncementMetadata", sender, Announcement.timestamp.ToString("MM/dd/yyyy h:mm tt")];
+    }
+
+}

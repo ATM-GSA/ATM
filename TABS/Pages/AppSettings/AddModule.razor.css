@@ -1,0 +1,16 @@
+﻿.add-button {
+    font-size: 14px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.dropdown-select {
+    width: 250px;
+}
+
+.mod-table {
+    height: 500px;
+    margin: 20px 0px 0px 0px;
+    overflow-y: auto;
+}

@@ -1,0 +1,97 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@using TABS.Data;
+@using System.Text.Json;
+@inject IStringLocalizer<App> Localizer;
+
+<Form @ref="form"
+      Model="@model"
+      ValidateOnChange="@true"
+      ValidateMode="@FormValidateMode.Default"
+      OnFinish="OnSubmit"
+      WrapperColSpan="14"
+      LabelColSpan="6"
+      Layout="@FormLayout.Horizontal"
+      Name="@Localizer["ContactForm.AddCustom"]">
+    <FormItem Label="@Localizer["Name"]">
+        <Input @bind-Value="@context.Name" AllowClear="true" DebounceMilliseconds="500" />
+    </FormItem>
+    <FormItem Label="@Localizer["Email"]">
+        <Input @bind-Value="@context.Email" AllowClear="true" DebounceMilliseconds="500" />
+    </FormItem>
+@*    <FormItem Label="@Localizer["ITLevel"]">
+        <Select DataSource="ITLevels" @bind-Value="@context.ITLevel"/>
+    </FormItem>*@
+    <FormItem WrapperColSpan="14" WrapperColOffset="2">
+        <Button Type="@ButtonType.Primary"
+                HtmlType="submit"
+                Disabled="@(!(form.IsModified && form.Validate()))"
+                Loading="@_awaitingSave">
+            @Localizer["Save"]
+        </Button>
+        <Button OnClick="OnCancel"> @Localizer["Cancel"]</Button>
+    </FormItem>
+</Form>
+
+@code
+
+{
+    private class Model
+    {
+        [Required]
+        public string Name { get; set; }
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+@*
+        [Required]
+        [Range(1, 5)]
+        public int ITLevel { get; set; }*@
+    }
+
+    [Parameter]
+    public EventCallback<ContactInfo> OnSubmitSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public ContactInfo CurrentContact { get; set; }
+
+    private bool _awaitingSave = false;
+
+    private Form<Model> form;
+    private Model model = new Model();
+
+    private bool submitted = false;
+
+    private List<int> ITLevels = new List<int> { 1, 2, 3, 4, 5 };
+
+    protected override void OnInitialized()
+    {
+        if (CurrentContact != null)
+        {
+            model.Name = CurrentContact.name != null ? CurrentContact.name : "";
+            model.Email = CurrentContact.email != null ? CurrentContact.email : "";
+            @*model.ITLevel = CurrentContact.itLevel;*@
+
+        }
+    }
+
+    private async Task OnSubmit(EditContext editContext)
+    {
+        _awaitingSave = true; // is this necessary?
+        StateHasChanged();
+
+        ContactInfo NewContact = DefaultContactInfo.GetDefaultContactInfo();
+
+        NewContact.name = model.Name;
+        NewContact.email = model.Email;
+        @*NewContact.itLevel = model.ITLevel;*@
+
+        _awaitingSave = false;
+        submitted = true;
+        await OnSubmitSuccess.InvokeAsync(NewContact);
+    }
+
+}

@@ -1,0 +1,43 @@
+﻿@using  System.Globalization
+@using TABS.Data
+@inject NavigationManager Nav
+@inject UserPreferenceService _userPreference
+
+<p>
+    @{
+        string cultureText = CultureInfo.CurrentCulture.ToString() == "en-US" ? "French" : "English";
+    }
+
+    <div style="display:flex; justify-content:center; width: 120px; cursor: pointer;" @onclick="() => ChangeCulture(cultureText)">
+        <Icon Type="swap" Theme="outline" style="margin-top: 3px; padding-right: 5px"/>
+        @Localizer["CultureSelector.AltLanguage"]
+    </div>
+</p>
+
+@code
+{
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    public async void ChangeCulture(string value)
+    {
+        string newCulture = value == "French" ? "fr-CA" : "en-US";
+        CultureInfo cultureInfo = new CultureInfo(newCulture);
+        var uri = new Uri(Nav.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var cultureEscaped = Uri.EscapeDataString(cultureInfo.Name);
+        var uriEscaped = Uri.EscapeDataString(uri);
+
+        Preferences preferences = _userPreference.GetPreferences();
+        preferences.language = cultureInfo.Name;
+        _userPreference.SetPreferences(preferences);
+        bool result = await _userPreference.SaveUserPreferences();
+
+        if (result)
+        {
+            Nav.NavigateTo(
+                $"Culture/Set?culture={cultureEscaped}&redirectUri={uriEscaped}",
+                forceLoad: true);
+        }
+    }
+}

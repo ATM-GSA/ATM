@@ -1,0 +1,54 @@
+﻿.dropdown-container {
+    width: 350px;
+    padding: 12px 20px;
+    padding-right: 4px;
+}
+
+.notif-container {
+    display: flex;
+    position: relative;
+}
+
+::deep .notif-close {
+    position: absolute;
+    right: 10px;
+    top: 3px;
+    color: gray;
+}
+
+::deep .notif-close-container:hover {
+    display: block;
+    cursor: pointer;
+}
+
+.notif-close-container {
+    display: none;
+}
+
+.notif-item-container {
+    width: 100%;
+}
+
+.notif-item-container:hover + .notif-close-container {
+    display: block;
+}
+
+::deep .notif-divider {
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+.tab-container {
+    position: relative;
+}
+
+.scrollbox {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notif-end-text {
+    color: gray;
+    font-style: italic;
+    text-align: center;
+}

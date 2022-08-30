@@ -1,0 +1,20 @@
+﻿.widget-half-width-uncollapsed {
+    width: 48%;
+}
+
+@media (max-width: 1115px) {
+    .widget-half-width-uncollapsed {
+        width: 100%;
+    }
+}
+
+.widget-half-width-collapsed {
+    width: 48%;
+}
+
+@media (max-width: 990px) {
+    .widget-half-width-collapsed {
+        width: 100%;
+    }
+}
+

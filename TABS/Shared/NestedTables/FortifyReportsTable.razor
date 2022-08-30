@@ -1,0 +1,245 @@
+﻿@using TABS.Data
+@using TABS.Shared.Forms
+@inject AntDesign.ModalService _modalService
+@inject IStringLocalizer<App> Localizer
+
+<Table DataSource="Rows" HidePagination Loading="Rows==null">
+    <Column @bind-Field="@context.Scan" Title="@Localizer[ModuleProperties["Name"].LocalizationKey]">
+        @context.Scan.Name
+    </Column>
+    <Column @bind-Field="@context.Scan" Title="@Localizer[ModuleProperties["ScanType"].LocalizationKey]" Width="120px">
+        @if (context.Scan.ScanType == FortifyScan.ScanTypeLookUp.DynamicScan)
+        {
+            <Tag PresetColor="@PresetColor.Cyan">@Localizer["DynamicScan"]</Tag>
+        }
+        else
+        {
+            <Tag PresetColor="@PresetColor.GeekBlue">@Localizer["StaticScan"]</Tag>
+        }
+    </Column>
+    <Column @bind-Field="@context.Scan" Title="@Localizer[ModuleProperties["ScanDate"].LocalizationKey]" Width="120px">
+        @context.Scan.ScanDate.ToString("MMM dd, yyyy")
+    </Column>
+    <Column @bind-Field="@context.Scan" Title="@Localizer[ModuleProperties["ReportLink"].LocalizationKey]" Ellipsis>
+        @if (context.Scan.ReportLink != null && (context.Scan.ReportLink.StartsWith("https://") || context.Scan.ReportLink.StartsWith("http://")))
+        {
+            <a href="@context.Scan.ReportLink" target="_blank" rel="noopener noreferrer">@context.Scan.ReportLink</a>
+        } else
+        {
+            @context.Scan.ReportLink
+        }
+    </Column>
+    <Column @bind-Field="@context.Scan" Title="@Localizer[ModuleProperties["Notes"].LocalizationKey]">
+        @context.Scan.Notes
+    </Column>
+    @if (!_isDisabled && _isEditing)
+    {
+        <ActionColumn>
+            <Button Type="@ButtonType.Dashed" Size="@ButtonSize.Small" OnClick="() => OpenEditModal(context.Id, context.Scan)"
+                Disabled=@_modalOpen >
+                @Localizer["Edit"]
+            </Button>
+            <Popconfirm Title="@Localizer["DeleteConfirmationGeneric"]"
+                        OkText="@Localizer["YesDelete"]"
+                        CancelText="@Localizer["Cancel"]"
+                        ArrowPointAtCenter="true"
+                        OnConfirm="() => DeleteRow(context)">
+                <Button Type="@ButtonType.Link" Danger="@true" Size="@ButtonSize.Small">
+                    @Localizer["Delete"]
+                </Button>
+            </Popconfirm>
+        </ActionColumn>
+    }
+</Table>
+@if (!_isDisabled && _isEditing)
+{
+    <Button OnClick="OpenAddNewModal"
+            Type="@ButtonType.Link"
+            Style="margin-bottom:16px"
+            Size="@ButtonSize.Small"
+            Disabled=@_modalOpen >
+        + @Localizer["ModuleTable.AddNewRow"]
+    </Button>
+}
+
+@code {
+
+    [Parameter]
+    public List<FortifyScan> Scans { get; set; }
+
+    [CascadingParameter(Name = "IsReadOnly")]
+    private bool _isDisabled { get; set; }
+
+    [CascadingParameter(Name = "IsInEditMode")]
+    private bool _isEditing { get; set; }
+
+    private bool _wasEditing = false;
+
+    Dictionary<string, ModuleProperty> ModuleProperties = new FortifyScan().GetProperties();
+
+
+    class Row
+    {
+        public int Id { get; set; }
+        public FortifyScan Scan { get; set; }
+    }
+
+
+    private int nextId = 0;  // Next available integer that can be used as a unique Row Id
+    private List<Row> Rows;
+    private List<Row> _deletedInitialRows = new List<Row>(); // All rows from Rows that were deleted since Rows was initialized or reset
+
+    // True iff at least one FortifyScan from the give <Scans> parameter was edited since Rows was initialized or reset
+    private bool scansWereEdited = false;
+
+    private bool _modalOpen = false;
+
+    private ModalRef _modalRef;
+
+    protected override void OnInitialized()
+    {
+        ResetToDefault();
+        // throw new Exception("Test exception"); // UNCOMMENT THIS for testing error handling
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_wasEditing != _isEditing)
+        {
+            ResetToDefault();
+            _wasEditing = _isEditing;
+        }
+
+    }
+
+    private void DeleteRow(Row rowToDelete)
+    {
+        if (rowToDelete.Scan.FortifyScanId != default) _deletedInitialRows.Add(rowToDelete);
+        Rows = Rows.Where(row => row.Id != rowToDelete.Id).ToList();
+    }
+
+    private async Task AddRow(FortifyScan newScan)
+    {
+        Row newRow = new Row() { Id = nextId, Scan = newScan };
+        nextId++;
+
+        Rows.Add(newRow);
+        await CloseModal();
+    }
+
+    private async Task UpdateRow(int rowId, FortifyScan updatedScan)
+    {
+        FortifyScan CurrentScan = Rows.First(row => row.Id == rowId).Scan;
+        CurrentScan.Name = updatedScan.Name;
+        CurrentScan.Notes = updatedScan.Notes;
+        CurrentScan.ReportLink = updatedScan.ReportLink;
+        CurrentScan.ScanDate = updatedScan.ScanDate;
+        CurrentScan.ScanType = updatedScan.ScanType;
+
+        if (CurrentScan.FortifyScanId != default) scansWereEdited = true;
+
+        await CloseModal();
+    }
+
+    private async Task OpenAddNewModal()
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["FortifyReportsTable.AddNew"].ToString(),
+            Footer = null,
+            MaskClosable = false,
+            DestroyOnClose = true,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =
+    @<FortifyReportForm OnSubmitSuccess="AddRow" OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null)
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+    private async Task OpenEditModal(int rowId, FortifyScan currScan)
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["FortifyReportsTable.Edit"].ToString(),
+            Footer = null,
+            DestroyOnClose = true,
+            MaskClosable = false,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =
+    @<FortifyReportForm CurrentReport="@(currScan)"
+                                         OnSubmitSuccess="(newScan) => UpdateRow(rowId, newScan)"
+                                         OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null) 
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        if (_modalRef != null) 
+        {
+            await _modalRef.CloseAsync();
+            _modalRef = null;
+        }
+        _modalOpen = false;
+        StateHasChanged();
+    }
+
+
+
+    // ====== PUBLIC FUNCTIONS ======
+    public bool HasChanges()
+    {
+        bool hasNewlyAddedScans = Rows.Where(row => row.Scan.FortifyScanId == default).ToList().Count() > 0;
+        bool existingScansDeleted = _deletedInitialRows.Count > 0;
+        return hasNewlyAddedScans || existingScansDeleted || scansWereEdited;
+    }
+
+    public List<FortifyScan> GetDeletedScans()
+    {
+        return _deletedInitialRows.Select(row => row.Scan).ToList();
+    }
+
+    public List<FortifyScan> GetUpdatedScans()
+    {
+        return Rows.Select(row => row.Scan).ToList();
+    }
+
+    public void ResetToDefault()
+    {
+        nextId = 0;
+        scansWereEdited = false;
+        if (Scans == null) Scans = new List<FortifyScan>();
+        Rows = Scans.Select(scan =>
+        {
+            nextId++;
+            return new Row()
+            {
+                Id = nextId - 1,
+                Scan = new FortifyScan()
+                {
+                    Security = scan.Security,
+                    FortifyScanId = scan.FortifyScanId,
+                    Name = scan.Name,
+                    ScanType = scan.ScanType,
+                    Notes = scan.Notes,
+                    ScanDate = scan.ScanDate,
+                    ReportLink = scan.ReportLink
+                }
+            };
+        }).ToList();
+        _deletedInitialRows = new List<Row>();
+    }
+
+}

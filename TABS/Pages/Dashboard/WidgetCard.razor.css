@@ -1,0 +1,14 @@
+﻿.widget-card-wrapper {
+    position: relative;
+    z-index: 5;
+    height: 365px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+}
+
+
+@media (max-width: 770px) {
+    .widget-card-wrapper {
+        height: 320px;
+    }
+}

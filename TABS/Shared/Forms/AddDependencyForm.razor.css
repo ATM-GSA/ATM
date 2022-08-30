@@ -1,0 +1,17 @@
+﻿.selected {
+    background-color: #F5F8FB;
+}
+
+.searchbar-container {
+    margin-bottom: 1rem;
+}
+
+.button-group {
+    margin-top: 1rem;
+}
+
+.spinner-container {
+    text-align: center;
+    width: 100%;
+    padding: 50px;
+}

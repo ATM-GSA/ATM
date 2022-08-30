@@ -1,0 +1,267 @@
+﻿@inject ApplicationService ApplicationService
+@inject CrudService CrudService
+@inject UserService UserService
+@inject AuthService AuthService
+@inject Global Global
+
+@if (_isLoaded)
+{
+    <div class="update-content">
+        <div class="temp-blue">
+            <Icon Type="bell" Theme="outline" Class="update-icon" />
+        </div>
+        <div class="update-body">
+            <div class="update-title">
+                @getNotifsUpdateTitle()
+            </div>
+            <div class="update-date">
+                @Update.timestamp.ToString("MM/dd/yyyy h:mm tt")
+            </div>
+            <div class="update-pb">
+                @* Since we haven't implemented tracking field changes yet, we'll use this temp message that doesn't list the fields. *@
+                @getNotifsUpdateMessageTemp()
+                @*@if (Fields.Count() > 3)
+                    {
+                        @getNotifsUpdateMessage(true)
+                    }
+                    else
+                    {
+                        @getNotifsUpdateMessage(false)
+                    }*@
+            </div>
+            @if (App != null && !App.IsDeleted && !App.IsArchived) {
+                <Button Type="@(_isFollowing? "primary" : "default")" Size="@ButtonSize.Small" OnClick="onFollow" class="update-unfollow">
+                    @(_isFollowing? getUnfollowMessage() : getFollowMessage())
+                </Button>
+            }
+        </div>
+    </div>
+} else
+{
+    <Skeleton Active=true />
+}
+
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public TABS.Data.ModuleUpdate Update { get; set; }
+
+    [Parameter]
+    public EventCallback NotifyUpdate { get; set; }
+
+    [Parameter]
+    public User ActiveUser { get; set; }
+
+    [Parameter]
+    public User EditorUser { get; set; }
+
+    [Parameter]
+    public Application App { get; set; }
+
+    private bool _isLoaded = false;
+
+    private bool _isFollowing = true;
+    private ModuleTypeEnum _module = ModuleTypeEnum.Undefined;
+
+    // for when we implement field change tracking
+    // private List<string> _fields = new List<string>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadValues();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadValues();
+    }
+
+    private async Task LoadValues()
+    {
+        // right now, the results are refreshing too often, so setting _isLoaded = false makes the notif dropdown un-useable
+        //_isLoaded = false;
+
+        _module = (ModuleTypeEnum) Update.moduleType;
+
+        ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(Update.applicationID, ActiveUser.UserID);
+        _isFollowing = applicationSubscription != null;
+
+        _isLoaded = true;
+    }
+
+    /// <summary>
+    /// Returns a preview of which fields have been changed (max 3 fields).
+    /// </summary>
+    /// <returns></returns>
+    //private string getFieldsPreview()
+    //{
+    //    List<string> fields;
+    //    if (Fields.Count() > 3)
+    //    {
+    //        fields = Fields.GetRange(0, 3);
+
+    //    }
+    //    else
+    //    {
+    //        fields = Fields;
+    //    }
+    //    string fieldsPreview = "";
+    //    foreach (string field in fields)
+    //    {
+    //        fieldsPreview = fieldsPreview + field + ", ";
+    //    }
+    //    // get rid of the extra ", " at the end of the string
+    //    fieldsPreview = fieldsPreview.TrimEnd(' ').TrimEnd(',');
+    //    return fieldsPreview;
+    //}
+
+    /// <summary>
+    /// Return the RenderFragment representing the Title text on an Update item.
+    /// </summary>
+    /// <returns></returns>
+    private RenderFragment getNotifsUpdateTitle()
+    {
+        string link;
+        string title;
+        if (App != null)
+        {
+            if (!App.IsDeleted)
+            {
+                link = $"<a href=\"{GetAppDetailsLink()}\" class=\"regular-text-color\">{App.Identification.Name}</a>";
+                title = $"<span class=\"bold-text\">{link}</span>"; // TODO: Localize "Deleted App"
+            } else
+            {
+                title = $"<span class=\"bold-text\">{App?.Identification.Name} <i>(deleted)</i></span>";
+            }
+        } else
+        {
+            title = $"<span class=\"bold-text\"><i>Deleted Application</i></span>"; // TODO: Localize "Deleted App"
+        }
+        string localization = Localizer["Notifs.UpdatesTitle", title];
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    /// <summary>
+    /// Return the RenderFragment representing the Message text on an Update item.
+    /// </summary>
+    /// <param name="extraFields">Whether or not there are more than 3 fields to display.</param>
+    /// <returns></returns>
+    //private RenderFragment getNotifsUpdateMessage(bool extraFields)
+    //{
+    //    string fields = $"<span class=\"bold-text\">{getFieldsPreview()}</span>";
+    //    fields = extraFields ? fields + $"<span class=\"grey-text\"> {Localizer["AppDetails.PlusOtherFields", (Fields.Count() - 3)]}</span>" : fields;
+    //    string module = $"<span class=\"temp-blue\">{Module}</span>";
+    //    string localization = Localizer["Notifs.UpdatesMessage", User, fields, module];
+    //    RenderFragment render = r =>
+    //    {
+    //        r.OpenElement(1, "span");
+    //        r.AddMarkupContent(1, localization);
+    //        r.CloseElement();
+    //    };
+    //    return render;
+    //}
+
+    // use the above method instead of the below once field change tracking has been implemented
+
+    private RenderFragment getNotifsUpdateMessageTemp()
+    {
+        string link;
+        string module;
+        if (App != null && !App.IsDeleted)
+        {
+            // TODO: Should probably check if the module is still present if it's an optional module 
+            link = $"<a href=\"{GetModDetailsLink()}\">{Localizer[_module.ToString()]}</a>";
+            module = $"<span class=\"temp-blue\">{link}</span>";
+        } else
+        {
+            // TODO: Should probably check if the module is still present if it's an optional module 
+            module = $"<span>{Localizer[_module.ToString()]}</span>";
+        }
+        string localization = Localizer["Notifs.UpdateMessageTemp", EditorUser?.Name ?? "<i> Deleted User </i>", module];
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    /// <summary>
+    /// Return the RenderFragment representing the Unfollow button text on an Update item.
+    /// </summary>
+    /// <returns></returns>
+    private RenderFragment getUnfollowMessage()
+    {
+        @*string app = $"<span class=\"bold-text\">{App?.Identification.Name ?? "<i>Deleted Application</i>" }</span>";*@
+        string localization = Localizer["Unsubscribe"];
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    /// <summary>
+    /// Return the RenderFragment representing the Follow button text on an Update item.
+    /// </summary>
+    /// <returns></returns>
+    private RenderFragment getFollowMessage()
+    {
+        @*string app = $"<span class=\"bold-text\">{App?.Identification.Name ?? " < i > Deleted Application </ i > " }</span>";*@
+        string localization = Localizer["Subscribe"];
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    /// <summary>
+    /// Callback function for the Follow/Unfollow button.
+    /// </summary>
+    private async Task onFollow()
+    {
+        if (_isFollowing)
+        {
+            ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(Update.applicationID, ActiveUser.UserID);
+            if (applicationSubscription != null) // make sure there is a subscription
+                await CrudService.DeleteAsync<ApplicationSubscription>(applicationSubscription);
+
+        }
+        else
+        {
+            ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(Update.applicationID, ActiveUser.UserID);
+            if (applicationSubscription == null) // make sure there isn't already a subscription
+                await CrudService.InsertAsync<ApplicationSubscription>(new ApplicationSubscription() { ApplicationID = Update.applicationID, UserID = ActiveUser.UserID });
+        }
+        _isFollowing = !_isFollowing;
+        StateHasChanged();
+
+        // notify the parent to re-render
+        await NotifyUpdate.InvokeAsync();
+    }
+
+    private string GetAppDetailsLink()
+    {
+        return Global.GetAppDetailsURL(App.ShortID);
+    }
+
+    private string GetModDetailsLink()
+    {
+        return Global.GetModuleDetailsURL(App.ShortID, _module.ToString());
+    }
+}

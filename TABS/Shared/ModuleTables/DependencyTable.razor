@@ -1,0 +1,172 @@
+﻿@using TABS.Data
+@using TABS.Shared.Forms
+
+@inject ApplicationService _appService
+@inject CrudService _crudService
+@inject AuthService _authService
+@inject MessageService _message
+@inject AntDesign.ModalService _modalService
+@inject IStringLocalizer<App> Localizer
+
+<div>
+    @if (!_isDisabled)
+    {
+        <Button Style="margin-bottom:16px" OnClick="OpenAddDependenciesModal" Disabled=@_modalOpen>
+            + @Localizer["AddDependencies"]
+        </Button>
+    }
+    <Table DataSource="Dependencies" HidePagination Loading="Dependencies == null" Size="@TableSize.Small" Title="@(ShowTitle ? Localizer["Dependencies"]: null)">
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["APMID"].LocalizationKey]" Width="100px">
+            @context.Identification.APMID
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["Name"].LocalizationKey]">
+            @if (context.IsDeleted)
+            { <Text>@context.Identification.Name (@Localizer["Deleted"])</Text> }
+            else
+            {
+                <NavLink href=@($"applications/{context.ShortID}")>
+                    @context.Identification?.Name
+                </NavLink>
+                @(context.IsArchived ? $" ({Localizer["Archived"]})" : "")
+            }
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["Status"].LocalizationKey]">
+            @context.Identification.Status
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["WebURL"].LocalizationKey]">
+            @foreach (var url in context.Identification?.WebURL.Trim().Split("\n"))
+                {
+                    <a href="@url" target="_blank" rel="noopener noreferrer">
+                        @url
+                    </a> <br/>
+                }
+        </Column>
+        @if (!_isDisabled)
+        {
+            <ActionColumn>
+                <Popconfirm Title="@Localizer["DependencyTable.ConfirmDelete"]"
+                            OnConfirm="() => deleteDependency(context.ApplicationID)"
+                            OkText="@Localizer["YesDelete"]"
+                            CancelText="@Localizer["Cancel"]"
+                            ArrowPointAtCenter="true">
+                    <Button Type="@ButtonType.Link" Danger="@true" Size="@ButtonSize.Small">@Localizer["Delete"]</Button>
+                </Popconfirm>
+            </ActionColumn>
+        }
+    </Table>
+</div>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    [Parameter]
+    public bool IsDisabled { get; set; }
+
+    [CascadingParameter(Name = "IsReadOnly")]
+    private bool IsReadOnly { get; set; }
+
+    [CascadingParameter(Name = "ShowTitle")]
+    public bool ShowTitle { get; set; }
+
+    private List<Application> Dependencies = new List<Application>();
+    private AddDependencyForm form;
+    private ModalRef _modalRef;
+    private bool _isDisabled = false;
+    private Dictionary<string, ModuleProperty> AppIdModuleProperties = new ApplicationIdentification().GetProperties();
+    private bool _modalOpen = false;
+
+    private bool IsTest = false;
+
+    protected async override Task OnInitializedAsync()
+    {
+        await initModuleDisplay();
+        _isDisabled = IsDisabled || IsReadOnly;
+        StateHasChanged();
+    }
+
+    private async Task initModuleDisplay()
+    {
+        if (IsTest) ApplicationObj = new Application();
+        Dependencies = new List<Application>();
+
+        List<int> DependenciesIds = (ApplicationObj != null && ApplicationObj.Architecture.Dependents != null) ?
+             ApplicationObj.Architecture.Dependents.Select(dependency => dependency.DependentID).ToList() : new List<int>();
+
+        foreach (int dependencyId in DependenciesIds)
+        {
+            Application dependency = await _appService.GetApplicationByID(dependencyId);
+            Dependencies.Add(dependency);
+        }
+    }
+
+    private async void deleteDependency(int id)
+    {
+        Dependencies = Dependencies.Where(dependency => dependency.ApplicationID != id).ToList();
+        Dependency dependencyToDelete = new Dependency() { DependeeID = ApplicationObj.ApplicationID, DependentID = id };
+        await _crudService.DeleteAsync<Dependency>(dependencyToDelete);
+        await SaveChanges();
+        await (_message.Success(Localizer["ModulePage.DependencyDeleted"].ToString()));
+        StateHasChanged();
+    }
+
+    private async Task OpenAddDependenciesModal()
+    {
+        _modalOpen = true; 
+        StateHasChanged();
+
+        List<int> ExcludedIds = Dependencies.Select(dependency => dependency.ApplicationID).ToList();
+        ExcludedIds.Add(ApplicationObj.ApplicationID);
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["AddDependencies"].ToString(),
+            OkText = Localizer["Save"].ToString(),
+            CancelText = Localizer["Cancel"].ToString(),
+            Footer = null,
+            Centered = true,
+            Width = "600px",
+            MaskClosable = false,
+            DestroyOnClose = true,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =@<AddDependencyForm @ref="form" OnSubmitSuccess="AddDependencies" ApplicationsToExcludeIds="ExcludedIds" OnCancel="CloseModal" />
+        };
+
+        _modalRef = await _modalService.CreateModalAsync(modalConfig);
+
+    }
+
+    private async Task CloseModal()
+    {
+        if (_modalRef != null) await _modalRef.CloseAsync();
+        _modalOpen = false;
+        StateHasChanged();
+    }
+
+    private async Task AddDependencies(List<Application> newDependencies)
+    {
+        Dependencies.AddRange(newDependencies);
+
+        foreach (Application dependency in newDependencies)
+        {
+            Dependency d = new Dependency() { DependeeID = ApplicationObj.ApplicationID, DependentID = dependency.ApplicationID };
+            await _crudService.InsertAsync<Dependency>(d);
+        }
+        await SaveChanges();
+        await CloseModal();
+        await (_message.Success(Localizer["ModulePage.SaveSuccess"].ToString()));
+    }
+
+    private async Task SaveChanges()
+    {
+        ApplicationObj.Architecture.LastUpdate = DateTime.Now;
+        ApplicationObj.Architecture.LastModifiedBy = await _authService.GetUserSID();
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+        await _crudService.UpdateAsync(ApplicationObj);
+    }
+
+}

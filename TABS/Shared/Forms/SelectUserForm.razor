@@ -1,0 +1,207 @@
+﻿@inject CrudService CrudService;
+@inject IStringLocalizer<App> Localizer;
+@using AntDesign.TableModels;
+@using AntDesign;
+
+<div>
+    <Search Placeholder="@Localizer["SelectUserForm.SearchUser"]" WrapperStyle="width: 200px;" ClassicSearchIcon
+            DebounceMilliseconds="500" Size="@InputSize.Small" @bind-Value="@search" OnChange="filterDisplayedRows" />
+    <br />
+    <br />
+    <Table @ref="table" DataSource="@displayedRows" Size="TableSize.Small"
+           RowClassName="@(x => x.Data.isSelected ? "selected" : "")"
+           ScrollY="300px" PageSize="100" HidePagination
+           Loading="displayedRows == null">
+        <Column @bind-Field="@context.isSelected" Width="50px">
+            <TitleTemplate>
+                @if (!SingleSelect) 
+                { 
+                  <Tooltip Title="@(Localizer["ContactForm.SelectAllUsers"].ToString())">
+                    <Checkbox @bind-Checked="@_allSelected" OnChange="() => toggleSelectAll(_allSelected)"/> 
+                  </Tooltip>  
+                }
+            </TitleTemplate>
+            <ChildContent>
+                <Checkbox @bind-Checked="@context.isSelected" OnChange="()=>toggleSelect(context.value.UserID)" Disabled="@(SingleSelect ? context.isSelected : false)" />
+            </ChildContent>
+        </Column>
+        <Column @bind-Field="@context.value" Title="@Localizer["Name"]">
+            @context.value.Name
+        </Column>
+        <Column @bind-Field="@context.value" Title="@Localizer["Email"]">
+            <a href="mailto:@context.value.Email" target="_blank" rel="noopener noreferrer">@context.value.Email</a>
+        </Column>
+        <Column @bind-Field="@context.value" Title="@Localizer["ITLevel"]">
+            @context.value.ITLevel
+        </Column>
+
+    </Table>
+    @if (!excludeDefaultBtns)
+    {
+         <div style="margin-top: 16px;">
+            <Button Type="@ButtonType.Primary" OnClick="setSelectedUser" Disabled="@(allRows.Where(row => row.isSelected == true).Count() < 1)"
+                    Loading="@_awaitingSave">
+                @Localizer["Save"]
+            </Button>
+            <Button OnClick="OnCancel">@Localizer["Cancel"]</Button>
+        </div>
+    }
+
+</div>
+
+@code {
+
+    ITable table;
+    private string search;
+
+    private List<User> users = new List<User>();
+    private List<SelectionItem<User>> allRows = new List<SelectionItem<User>>();
+    private List<SelectionItem<User>> displayedRows;
+
+    private int? selectedUserId;
+
+    private List<int> selectedUserIds = new List<int>();
+
+    [Parameter]
+    public EventCallback<List<ContactInfo>> OnSubmitSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public bool SingleSelect { get; set; } = false;
+
+    [Parameter]
+    public bool excludeDefaultBtns { get; set; } = false;
+
+    [Parameter]
+    public List<int> PreselectedUserIds { get; set; } = new List<int>();
+
+    private bool _awaitingSave = false;
+    private bool _allSelected = false;
+
+    protected async override void OnInitialized()
+    {
+        await FetchAllUsers();
+
+        if (SingleSelect && PreselectedUserIds.Count == 1)
+        {
+            selectedUserId = PreselectedUserIds[0];
+        }
+
+        allRows = users.Select(user => {
+            if (PreselectedUserIds.Contains(user.UserID)) return new SelectionItem<User>(user, true);
+            return new SelectionItem<User>(user);
+        }).ToList();
+
+        if (allRows.Count() == PreselectedUserIds.Count())
+        {
+            _allSelected = true;
+        }
+
+        displayedRows = allRows.Select(s => new SelectionItem<User>(s.value, s.isSelected)).ToList();
+
+        StateHasChanged();
+    }
+
+    private async Task FetchAllUsers()
+    {
+        users = await CrudService.GetDataAsync<User>();
+    }
+
+    public void filterDisplayedRows()
+    {
+        if (search == null || search == "")
+        {
+            displayedRows = allRows.Select(s => new SelectionItem<User>(s.value, s.isSelected)).ToList();
+        }
+        else
+        {
+            displayedRows = allRows.Where(x => x.value.Name.ToLower().Contains(search.ToLower())).Select(s => new
+            SelectionItem<User>(s.value, s.isSelected)).ToList();
+        }
+    }
+
+    public Dictionary<string, object> OnClickRow(RowData<SelectionItem<User>> row)
+    {
+        Action<MouseEventArgs> OnClick = args =>
+        {
+            toggleSelect(row.Data.value.UserID);
+        };
+
+        return new Dictionary<string, object>
+    {
+            { "onclick", OnClick },
+        };
+    }
+
+    public void toggleSelect(int id)
+    {
+        //Console.WriteLine("Changed Radio");
+        // set the currently selected entry to be not selected
+        if (SingleSelect)
+        {
+            if (selectedUserId != null)
+            {
+                allRows.First(row => row.value.UserID == selectedUserId).isSelected = false;
+                if (displayedRows.Where(row => row.value.UserID == selectedUserId).Count() == 1)
+                {
+                    displayedRows.First(row => row.value.UserID == selectedUserId).isSelected = false;
+                }
+
+            }
+            selectedUserId = id;
+        }
+        bool previouslySelected = allRows.First(row => row.value.UserID == id).isSelected;
+        allRows.First(row => row.value.UserID == id).isSelected = !previouslySelected;
+        displayedRows.First(row => row.value.UserID == id).isSelected = !previouslySelected;
+        _allSelected = IsAllSelected();
+
+        StateHasChanged();
+    }
+
+    private async Task setSelectedUser()
+    {
+        _awaitingSave = true;
+        StateHasChanged();
+
+        List<ContactInfo> selectedUsersContact = allRows.Where(row => row.isSelected == true).Select(row => row.value.GetContactInfo()).ToList();
+        await OnSubmitSuccess.InvokeAsync(selectedUsersContact);
+        _awaitingSave = false;
+    }
+
+    private bool IsAllSelected()
+    {
+        return getSelectedUsers().Count() == users.Count();
+    }
+
+    public List<User> getSelectedUsers()
+    {
+        List<User> selectedUsers = allRows.Where(row => row.isSelected == true).Select(row => row.value).ToList();
+        return selectedUsers;
+
+    }
+
+    public bool isEveryoneSelected()
+    {
+        return getSelectedUsers().Count() == users.Count();
+    }
+
+    public void toggleSelectAll(bool selectAll)
+    {
+
+        if (SingleSelect) return;
+
+        foreach(var item in displayedRows)
+        {
+            item.isSelected = selectAll;
+        }
+
+        foreach (var item in allRows)
+        {
+            item.isSelected = selectAll;
+        }
+
+    }
+
+}

@@ -1,0 +1,332 @@
+﻿@inject AntDesign.ModalService _modal
+@inject CrudService _crudService
+@inject ApplicationService _applicationService
+@inject AntDesign.ModalService _modal
+@using System.Text.Json
+@using AntDesign
+@using System.Linq
+@using System.Collections;
+
+@*
+    This component handles module settings in an Application's settings page. It allows the user to add/remove modules and feature/unfeature modules.
+*@
+
+<div>
+    <div class="header">
+        <TABS.Components.TableSearchBar OriginalList="_allModsOriginal" DataSourceList="_allModsSearch" OnSearch="DoesModContainValue" SendList="@OnTableSearch" T="ModInfo"></TABS.Components.TableSearchBar>
+        <AddModule App="App" OnAdd="Update"></AddModule>
+    </div>
+
+    @* Featured Modules Table *@
+    <div class="mod-table">
+        <Table TItem="ModInfo" DataSource="_featuredModules" Size="@TableSize.Small" @bind-Total="_totalFeatured" @bind-PageIndex="_pageIdxFeatured" PageSize="_pageSizeFeatured">
+            <Column TData="string" @bind-Field="@context.DisplayName" Title="@Localizer["FeaturedModules"]" Width="65%"></Column>
+            <Column TData="bool" @bind-Field="@context.Required" Title="Use">
+                <div class="column-required">
+                    <Tag PresetColor="@(context.Required ? PresetColor.Red : PresetColor.Orange)" Class="status-tag">
+                        @(context.Required ? Localizer["Required"] : Localizer["Optional"])
+                    </Tag>
+                </div>
+            </Column>
+            <ActionColumn>
+                <div class="column-actions">
+                    <Button Disabled=@(App.IsArchived || App.IsDeleted)
+                        OnClick="() => OnUnfeatureClick(context)" 
+                        Size="@AntDesign.ButtonSize.Small"
+                        Type="@AntDesign.ButtonType.Link"
+                        Class="feature-button">
+                        @Localizer["Unfeature"]
+                    </Button>
+                    <Button Disabled=@(context.Required || App.IsArchived || App.IsDeleted) 
+                            OnClick="() => OnRemove(context, true)"
+                            Size="@AntDesign.ButtonSize.Small"
+                            Type="@AntDesign.ButtonType.Link"
+                            Danger
+                            Class="remove-button">
+                        @Localizer["Remove"]
+                    </Button>
+                </div>
+            </ActionColumn>
+        </Table>
+    </div>
+
+    @* Unfeatured Modules Table *@
+    <div class="mod-table">
+        <Table TItem="ModInfo" DataSource="_unfeaturedModules" Size="@TableSize.Small" @bind-Total="_totalUnfeatured" @bind-PageIndex="_pageIdxUnfeatured" PageSize="_pageSizeUnfeatured">
+            <Column TData="string" @bind-Field="@context.DisplayName" Title="@Localizer["UnfeaturedModules"]" Width="65%"></Column>
+            <Column TData="bool" @bind-Field="@context.Required" Title="Use">
+                <div class="column-required">
+                    <Tag PresetColor="@(context.Required ? PresetColor.Red : PresetColor.Orange)" Class="status-tag">
+                        @(context.Required ? Localizer["Required"] : Localizer["Optional"])
+                    </Tag>
+                </div>
+            </Column>
+            <ActionColumn>
+                <div class="column-actions">
+                    <Button Disabled=@(App.IsArchived || App.IsDeleted)
+                        OnClick="() => OnFeatureClick(context)" 
+                        Size="@AntDesign.ButtonSize.Small"
+                        Type="@AntDesign.ButtonType.Link"
+                        Class="feature-button">
+                        @Localizer["Feature"]
+                    </Button>
+                    <Button Disabled=@(context.Required || App.IsArchived || App.IsDeleted) 
+                            OnClick="() => OnRemove(context, false)"
+                            Size="@AntDesign.ButtonSize.Small"
+                            Type="@AntDesign.ButtonType.Link"
+                            Class="remove-button"
+                            Danger>
+                        @Localizer["Remove"]
+                    </Button>
+                </div>
+            </ActionColumn>
+        </Table>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public Application App { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    public class ModInfo
+    {
+        public ModuleTypeEnum modType { get; set; }
+        public string Key { get; set; } // this isn't being used. do we still need it?
+        public string DisplayName { get; set; }
+        public bool Required { get; set; }
+        public bool Featured { get; set; }
+    }
+
+    // these lists are used to keep track of the app's modules
+    private List<ModInfo> _featuredModules { get; set; } = new List<ModInfo>();
+    private List<ModInfo> _unfeaturedModules { get; set; } = new List<ModInfo>();
+    private List<int> _availableModules { get; set; } = new List<int>();
+
+    // these lists are used by the search bar
+    private List<ModInfo> _allModsOriginal { get; set; } = new List<ModInfo>();
+    private List<ModInfo> _allModsSearch { get; set; } = new List<ModInfo>();
+
+    // these are used by the table paginators
+    private int _totalUnfeatured = 0;
+    private int _pageSizeUnfeatured = 5;
+    private int _pageIdxUnfeatured = 1;
+    private int _totalFeatured = 0;
+    private int _pageSizeFeatured = 5;
+    private int _pageIdxFeatured = 1;
+
+    protected override void OnInitialized()
+    {
+        LoadMods();
+    }
+
+    /// <summary>
+    /// Loads in module information needed for this component
+    /// </summary>
+    private void LoadMods()
+    {
+        _featuredModules.Clear();
+        _unfeaturedModules.Clear();
+        _allModsOriginal.Clear();
+        _allModsSearch.Clear();
+
+        ApplicationProperties prop = App.GetApplicationProperties();
+
+        // populate the lists used by this component
+        // sort the app's available modules into featured/unfeatured lists
+        foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+        {
+            if (App.GetModules()[moduleType] == null) continue;
+
+            _availableModules.Add((int)moduleType);
+            ModInfo newMod = new ModInfo
+            {
+                modType = moduleType,
+                Key = moduleType.ToString(),
+                DisplayName = Localizer[moduleType.ToString()],
+                Required = ModuleTypeEnumExtensions.IsModuleRequired(moduleType),
+                Featured = prop.featuredModules.Contains((int)moduleType)
+            };
+            if (prop.featuredModules.Contains((int)moduleType))
+            {
+                _featuredModules.Add(newMod);
+            }
+            else
+            {
+                _unfeaturedModules.Add(newMod);
+            }
+            _allModsOriginal.Add(newMod);
+            _allModsSearch.Add(newMod);
+        }
+
+        _totalFeatured = _featuredModules.Count;
+        _totalUnfeatured = _unfeaturedModules.Count;
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Removes a Module from the Featured list and adds it to the Unfeatured list.
+    /// </summary>
+    /// <param name="mod"></param>
+    private async void OnUnfeatureClick(ModInfo mod)
+    {
+        // update data structures used by this component
+        mod.Featured = false;
+        _featuredModules.Remove(mod);
+        // manage pagination
+        int idx = Math.Min(_pageIdxUnfeatured * _pageSizeUnfeatured - 1, _unfeaturedModules.Count);
+        _unfeaturedModules.Insert(idx, mod);
+        _totalFeatured = _featuredModules.Count;
+        _totalUnfeatured = _unfeaturedModules.Count;
+        if (_featuredModules.Count % _pageSizeFeatured == 0 && _pageIdxFeatured != 1)
+        {
+            _pageIdxFeatured -= 1;
+        }
+
+        // update db
+        await UpdateAppProperties();
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Removes a Module from the Unfeatured list and adds it to the Featured list.
+    /// </summary>
+    /// <param name="mod"></param>
+    private async void OnFeatureClick(ModInfo mod)
+    {
+        // update data structures used by this component
+        mod.Featured = true;
+        _unfeaturedModules.Remove(mod);
+        // manage pagination
+        int idx = Math.Min(_pageIdxFeatured * _pageSizeFeatured - 1, _featuredModules.Count);
+        _featuredModules.Insert(idx, mod);
+        _totalFeatured = _featuredModules.Count;
+        _totalUnfeatured = _unfeaturedModules.Count;
+        if (_unfeaturedModules.Count % _pageSizeUnfeatured == 0 && _pageIdxUnfeatured != 1)
+        {
+            _pageIdxUnfeatured -= 1;
+        }
+
+        // update db
+        await UpdateAppProperties();
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Update the application's properties (featured and available modules)
+    /// </summary>
+    /// <returns></returns>
+    private async Task UpdateAppProperties()
+    {
+        ApplicationProperties updatedAppProps = new ApplicationProperties{
+            featuredModules = _featuredModules.Select(mod => (int)mod.modType).ToList(),
+            availableModules = _availableModules
+        };
+        App.Properties = JsonSerializer.Serialize(updatedAppProps);
+        await _crudService.UpdateAsync(App.Identification);
+    }
+
+    /// <summary>
+    /// Removes a Module from the Application.
+    /// </summary>
+    /// <param name="mod">The module to remove.</param>
+    /// <param name="featured">Whether or not the module is featured.</param>
+    private void OnRemove(ModInfo mod, bool featured)
+    {
+        // pop-up modal
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = Localizer["AppSettings.RemoveModConfirmTitle", mod.DisplayName].ToString(),
+            Content = Localizer["AppSettings.RemoveModConfirmSubtitle"].ToString(),
+            OkText = Localizer["Remove"].ToString(),
+            Centered = true,
+            OnOk = async (e) =>
+            {
+                if (featured)
+                {
+                    // remove from the featured list
+                    _featuredModules.Remove(mod);
+                    _totalFeatured -= 1;
+                    if (_featuredModules.Count % _pageSizeFeatured == 0 && _pageIdxFeatured != 1)
+                    {
+                        _pageIdxFeatured -= 1;
+                    }
+                }
+                else
+                {
+                    // remove from the unfeatured list
+                    _unfeaturedModules.Remove(mod);
+                    _totalUnfeatured -= 1;
+                    if (_unfeaturedModules.Count % _pageSizeUnfeatured == 0 && _pageIdxUnfeatured != 1)
+                    {
+                        _pageIdxUnfeatured -= 1;
+                    }
+                }
+
+                _availableModules.Remove((int)mod.modType);
+
+                // remove from db
+                await UpdateAppProperties();
+                await _crudService.DeleteAsync(App.GetModules()[mod.modType]);
+
+                // remove from search result lists
+                _allModsOriginal.Remove(mod);
+                _allModsSearch.Remove(mod);
+
+                StateHasChanged();
+            },
+            OnCancel = (e) =>
+            {
+                // Do nothing. Just chose the modal
+                return Task.CompletedTask;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Check if a Module's name contains a certain value. Used by the TableSearchBar.
+    /// </summary>
+    /// <param name="mod"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public Task<bool> DoesModContainValue(ModInfo mod, string value)
+    {
+        bool contains = mod.DisplayName.ToLower().Contains(value.ToLower().Trim());
+        return Task.FromResult(contains);
+    }
+
+    /// <summary>
+    /// Update module lists based on filtered result. Called by TableSearchBar.
+    /// </summary>
+    /// <param name="mods"></param>
+    private void OnTableSearch(List<ModInfo> mods)
+    {
+        // On search, a filtered list will be passed in. On clear, the original list of modules will be passed in.
+        // See the TableSearchBar component for more details.
+        _featuredModules = mods.Where(mod => mod.Featured).ToList();
+        _unfeaturedModules = mods.Where(mod => !mod.Featured).ToList();
+
+        _totalUnfeatured = _unfeaturedModules.Count;
+        _pageIdxUnfeatured = 1;
+        _totalFeatured = _featuredModules.Count;
+        _pageIdxFeatured = 1;
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Rerenders the component. Callback function for AddModule.
+    /// </summary>
+    /// <returns></returns>
+    public void Update()
+    {
+        LoadMods();
+    }
+
+}

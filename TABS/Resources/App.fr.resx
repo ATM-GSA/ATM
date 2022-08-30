@@ -1,0 +1,1650 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="404Page.Subtitle" xml:space="preserve">
+    <value>Désolé, il n’y a rien d’intéressant à voir ici.</value>
+  </data>
+  <data name="404Page.Title" xml:space="preserve">
+    <value>Erreur 404</value>
+  </data>
+  <data name="Accept" xml:space="preserve">
+    <value>Accepter</value>
+  </data>
+  <data name="Account" xml:space="preserve">
+    <value>Compte</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Mesures</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Actif</value>
+  </data>
+  <data name="ActiveUsers" xml:space="preserve">
+    <value>Utilisateurs actifs</value>
+  </data>
+  <data name="ActiveWidgets" xml:space="preserve">
+    <value>Widgets actifs</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Plus</value>
+  </data>
+  <data name="AddApplication.AddNewApplication" xml:space="preserve">
+    <value>Ajouter une nouvelle application</value>
+  </data>
+  <data name="AddApplication.ApplicationName" xml:space="preserve">
+    <value>Nom complet de l'application</value>
+  </data>
+  <data name="AddApplication.BackToModuleSelection" xml:space="preserve">
+    <value>Retourner à la sélection des modules</value>
+  </data>
+  <data name="AddApplication.DiscardMessage" xml:space="preserve">
+    <value>Cette application sera supprimée. Êtes-vous sûr?</value>
+  </data>
+  <data name="AddApplication.FillInModules" xml:space="preserve">
+    <value>Saisir les informations du module</value>
+  </data>
+  <data name="AddApplication.FixError" xml:space="preserve">
+    <value>Il y a des erreurs. Veuillez les réparer avant de continuer.</value>
+  </data>
+  <data name="AddApplication.IncludeModule" xml:space="preserve">
+    <value>Inclure le module</value>
+  </data>
+  <data name="AddApplication.NameYourApplication" xml:space="preserve">
+    <value>Entrez le nom complet de l'application (sans l'acronyme)</value>
+  </data>
+  <data name="AddApplication.NameYourApplicationShort" xml:space="preserve">
+    <value>Nommez votre application</value>
+  </data>
+  <data name="AddApplication.NextModule" xml:space="preserve">
+    <value>Module suivant</value>
+  </data>
+  <data name="AddApplication.RestoreSessionContent" xml:space="preserve">
+    <value>Vous avez créé une application appelée « {0} » qui comprend des modifications non sauvegardées. Souhaitez-vous continuer à travailler sur cette application?</value>
+  </data>
+  <data name="AddApplication.RestoreSessionTitle" xml:space="preserve">
+    <value>Application incomplète trouvée</value>
+  </data>
+  <data name="AddApplication.ReviewApplication" xml:space="preserve">
+    <value>Examinez votre application</value>
+  </data>
+  <data name="AddApplication.ReviewModule" xml:space="preserve">
+    <value>Examiner le module</value>
+  </data>
+  <data name="AddApplication.SelectAndFillInModules" xml:space="preserve">
+    <value>Sélectionner et remplir les modules</value>
+  </data>
+  <data name="AddApplication.SelectedModules" xml:space="preserve">
+    <value>Modules sélectionnés</value>
+  </data>
+  <data name="AddApplication.SelectModules" xml:space="preserve">
+    <value>Sélectionner les modules à inclure dans l’application</value>
+  </data>
+  <data name="AddApplication.SuccessfullyCreated" xml:space="preserve">
+    <value>Votre application a été créée avec succès!</value>
+  </data>
+  <data name="AddDependencies" xml:space="preserve">
+    <value>Ajouter les dépendances</value>
+  </data>
+  <data name="AdditionalDetails" xml:space="preserve">
+    <value>Détails supplémentaires</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Admin.AnnouncementDescription" xml:space="preserve">
+    <value>Créer des annonces pour les utilisateurs ici</value>
+  </data>
+  <data name="Admin.EmailError" xml:space="preserve">
+    <value>Il y avait une erreur en cours d'envoyer un e-mail à {0}!</value>
+  </data>
+  <data name="Admin.NotPermitted" xml:space="preserve">
+    <value>Vous n’êtes pas autorisé à visualiser cette page.</value>
+  </data>
+  <data name="Admin.RecoveryDescription" xml:space="preserve">
+    <value>Récupérer les applications supprimées ici</value>
+  </data>
+  <data name="Admin.UserApproved" xml:space="preserve">
+    <value>L'utilisateur a déjà été approuvé</value>
+  </data>
+  <data name="Admin.UserDeactivated" xml:space="preserve">
+    <value>L'utilisateur a déjà été désactivé</value>
+  </data>
+  <data name="Admin.UserDeleted" xml:space="preserve">
+    <value>L'utilisateur a déjà été supprimé</value>
+  </data>
+  <data name="Admin.UserManagementDescription" xml:space="preserve">
+    <value>Approuver, supprimer et modifier les utilisateurs ici</value>
+  </data>
+  <data name="AdminPanel" xml:space="preserve">
+    <value>Panneau d’administration</value>
+  </data>
+  <data name="Alerts" xml:space="preserve">
+    <value>Alertes</value>
+  </data>
+  <data name="AllModules" xml:space="preserve">
+    <value>Tous les modules</value>
+  </data>
+  <data name="Announcement" xml:space="preserve">
+    <value>Annonce</value>
+  </data>
+  <data name="Announcements" xml:space="preserve">
+    <value>Annonces</value>
+  </data>
+  <data name="Announcements.NewAnnouncementSubtitle" xml:space="preserve">
+    <value>Créez et envoyez des annonces, de courts messages dans l’application que vous pouvez envoyer à un ensemble d’utilisateurs dans ATM.</value>
+  </data>
+  <data name="Announcements.NewButton" xml:space="preserve">
+    <value>Créer une nouvelle annonce</value>
+  </data>
+  <data name="AnnouncementsCreate.AndOneOtherRecipient" xml:space="preserve">
+    <value>et {0}.</value>
+  </data>
+  <data name="AnnouncementsCreate.AndOtherRecipients" xml:space="preserve">
+    <value>{0} et {1} autres.</value>
+  </data>
+  <data name="AnnouncementsCreate.DetailsPlaceholder" xml:space="preserve">
+    <value>Détails supplémentaires concernant l’annonce (facultatif)...</value>
+  </data>
+  <data name="AnnouncementsCreate.MessagePlaceholder" xml:space="preserve">
+    <value>Un message court et concis résumant votre annonce...</value>
+  </data>
+  <data name="AnnouncementsCreate.Required" xml:space="preserve">
+    <value>Une annonce est requise.</value>
+  </data>
+  <data name="AnnouncementsCreate.Success" xml:space="preserve">
+    <value>Votre annonce a été envoyée.</value>
+  </data>
+  <data name="AnnouncementsCreate.UserRequired" xml:space="preserve">
+    <value>Au moins un utilisateur doit être sélectionné.</value>
+  </data>
+  <data name="AnnouncementsCreate.Who" xml:space="preserve">
+    <value>Qui recevra cette annonce?</value>
+  </data>
+  <data name="AppDetails.ArchivedWarning" xml:space="preserve">
+    <value>L'application est à lecture seule parce qu'elle est archivée. Désarchivez l'application pour permettre la révision.</value>
+  </data>
+  <data name="AppDetails.DeletedAppSubtitle" xml:space="preserve">
+    <value>Veuillez contacter un administrateur si vous souhaitez restaurer cette application.</value>
+  </data>
+  <data name="AppDetails.DeletedAppTitle" xml:space="preserve">
+    <value>Cette application a été supprimée</value>
+  </data>
+  <data name="AppDetails.DeletedWarning" xml:space="preserve">
+    <value>Cette application n’est actuellement visible que par les utilisateurs de l’administration, car elle a été supprimée. Récupérer l’application pour permettre la visualisation et la modification.</value>
+  </data>
+  <data name="AppDetails.EmptyAllModules" xml:space="preserve">
+    <value>Il n’y a pas de module.</value>
+  </data>
+  <data name="AppDetails.EmptyFeaturedModules" xml:space="preserve">
+    <value>Il n’y a pas de modules choisis.</value>
+  </data>
+  <data name="AppDetails.FavouriteTooltip" xml:space="preserve">
+    <value>Application préférée</value>
+  </data>
+  <data name="AppDetails.FeaturedModulesHelp" xml:space="preserve">
+    <value>Un administrateur a choisi de mettre ces modules en évidence pour cette application.</value>
+  </data>
+  <data name="AppDetails.FieldsPreviewTitle" xml:space="preserve">
+    <value>Champs dans ce module :</value>
+  </data>
+  <data name="AppDetails.GridViewTooltip" xml:space="preserve">
+    <value>Passer à la vue en grille</value>
+  </data>
+  <data name="AppDetails.ListViewTooltip" xml:space="preserve">
+    <value>Passer à la vue en liste</value>
+  </data>
+  <data name="AppDetails.MatchingColumnsFound" xml:space="preserve">
+    <value>{0} colonnes correspondantes trouvées dans ce module :</value>
+  </data>
+  <data name="AppDetails.MatchingFieldsFound" xml:space="preserve">
+    <value>{0} champs correspondants trouvés dans ce module :</value>
+  </data>
+  <data name="AppDetails.MatchingObjectsFound" xml:space="preserve">
+    <value>{0} objets correspondants trouvés dans ce module :</value>
+  </data>
+  <data name="AppDetails.NoUpdatesTooltip" xml:space="preserve">
+    <value>Se désabonner des mises à jour de l’application</value>
+  </data>
+  <data name="AppDetails.PlusOtherFields" xml:space="preserve">
+    <value>+{0} autres champs</value>
+  </data>
+  <data name="AppDetails.SearchPlaceholder" xml:space="preserve">
+    <value>Rechercher des champs</value>
+  </data>
+  <data name="AppDetails.UnfavouriteTooltip" xml:space="preserve">
+    <value>Désélectionner l’application comme préférée</value>
+  </data>
+  <data name="AppDetails.UpdatesTooltip" xml:space="preserve">
+    <value>S’abonner aux mises à jour de l’application</value>
+  </data>
+  <data name="Application" xml:space="preserve">
+    <value>Application</value>
+  </data>
+  <data name="Application.Architecture.AppPlatform" xml:space="preserve">
+    <value>Plateforme de l’application</value>
+  </data>
+  <data name="Application.Architecture.CDTSVersion" xml:space="preserve">
+    <value>Version CDTS</value>
+  </data>
+  <data name="Application.Architecture.Dependees" xml:space="preserve">
+    <value>Applications dépendantes</value>
+  </data>
+  <data name="Application.Architecture.Dependents" xml:space="preserve">
+    <value>Dépendances</value>
+  </data>
+  <data name="Application.Architecture.NETVersion" xml:space="preserve">
+    <value>Version .NET</value>
+  </data>
+  <data name="Application.Architecture.SEASVersion" xml:space="preserve">
+    <value>Version SADDS</value>
+  </data>
+  <data name="Application.Architecture.SMARTFramework" xml:space="preserve">
+    <value>Cadre SMART</value>
+  </data>
+  <data name="Application.Architecture.SMARTUpgradePlanning" xml:space="preserve">
+    <value>Planification de la mise à niveau SMART</value>
+  </data>
+  <data name="Application.Architecture.XmlBlob" xml:space="preserve">
+    <value>XMLBlob</value>
+  </data>
+  <data name="Application.BASMOnboarding.AppMonitoring" xml:space="preserve">
+    <value>Contrôle de l’application</value>
+  </data>
+  <data name="Application.BASMOnboarding.AssystSetup" xml:space="preserve">
+    <value>Configuration d’Assyst</value>
+  </data>
+  <data name="Application.BASMOnboarding.BASMGuide" xml:space="preserve">
+    <value>Guide BASM</value>
+  </data>
+  <data name="Application.BASMOnboarding.ClientIntro" xml:space="preserve">
+    <value>Présentation du client</value>
+  </data>
+  <data name="Application.BASMOnboarding.DemoToBASM" xml:space="preserve">
+    <value>Démonstration à BASM</value>
+  </data>
+  <data name="Application.BASMOnboarding.IntroEmail" xml:space="preserve">
+    <value>Courriel de présentation</value>
+  </data>
+  <data name="Application.BASMOnboarding.PowerUserGuide" xml:space="preserve">
+    <value>Guide de l’utilisateur avancé</value>
+  </data>
+  <data name="Application.Contacts.ClientLead" xml:space="preserve">
+    <value>Responsable du client</value>
+  </data>
+  <data name="Application.Contacts.ClientManager" xml:space="preserve">
+    <value>Gestionnaire du client</value>
+  </data>
+  <data name="Application.Contacts.Manager" xml:space="preserve">
+    <value>Gestionnaire</value>
+  </data>
+  <data name="Application.Contacts.TeamLead" xml:space="preserve">
+    <value>Chef d’équipe</value>
+  </data>
+  <data name="Application.Contacts.TechLead" xml:space="preserve">
+    <value>Responsable technique</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Database.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Database.Platform" xml:space="preserve">
+    <value>Plateforme</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Database.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Database.URL" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Database.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Application.DatabaseEnvironment.Databases" xml:space="preserve">
+    <value>Bases de données</value>
+  </data>
+  <data name="Application.Identification.AccessibilityComplianceScore" xml:space="preserve">
+    <value>Score de conformité d'accessibilité (%)</value>
+  </data>
+  <data name="Application.Identification.APMID" xml:space="preserve">
+    <value>APMID</value>
+  </data>
+  <data name="Application.Identification.ClientBranch" xml:space="preserve">
+    <value>Direction générale du client</value>
+  </data>
+  <data name="Application.Identification.CMPPortfolio" xml:space="preserve">
+    <value>Portefeuille du PGPC</value>
+  </data>
+  <data name="Application.Identification.Name" xml:space="preserve">
+    <value>Nom Complet</value>
+  </data>
+  <data name="Application.Identification.Status" xml:space="preserve">
+    <value>État d’avancement</value>
+  </data>
+  <data name="Application.Identification.SWIM" xml:space="preserve">
+    <value>GIGU</value>
+  </data>
+  <data name="Application.Identification.Title" xml:space="preserve">
+    <value>Acronyme</value>
+  </data>
+  <data name="Application.Identification.Visibility" xml:space="preserve">
+    <value>Visibilité</value>
+  </data>
+  <data name="Application.Identification.WebAccessibilityAssessment" xml:space="preserve">
+    <value>Évaluation sur l’accessibilité des sites Web</value>
+  </data>
+  <data name="Application.Identification.WebURL" xml:space="preserve">
+    <value>URL Web</value>
+  </data>
+  <data name="Application.Report.Accessibility" xml:space="preserve">
+    <value>Accessibilité</value>
+  </data>
+  <data name="Application.Report.Performance" xml:space="preserve">
+    <value>Rendement</value>
+  </data>
+  <data name="Application.Security.AttachmentDropZone" xml:space="preserve">
+    <value>Zone de dépôt des pièces jointes</value>
+  </data>
+  <data name="Application.Security.AuditLogs" xml:space="preserve">
+    <value>Registre des vérifications</value>
+  </data>
+  <data name="Application.Security.DynamicRemediationCompleted" xml:space="preserve">
+    <value>Assainissement dynamique achevé</value>
+  </data>
+  <data name="Application.Security.Exempt" xml:space="preserve">
+    <value>Exempt</value>
+  </data>
+  <data name="Application.Security.ExemptionReasoning" xml:space="preserve">
+    <value>Raison de l’exemption</value>
+  </data>
+  <data name="Application.Security.FortifyScan.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Application.Security.FortifyScan.Notes" xml:space="preserve">
+    <value>Remarques :</value>
+  </data>
+  <data name="Application.Security.FortifyScan.ReportLink" xml:space="preserve">
+    <value>Lien vers le rapport</value>
+  </data>
+  <data name="Application.Security.FortifyScan.ScanDate" xml:space="preserve">
+    <value>Date de numérisation</value>
+  </data>
+  <data name="Application.Security.FortifyScan.ScanType" xml:space="preserve">
+    <value>Type de numérisation</value>
+  </data>
+  <data name="Application.Security.FortifyScan.ScanType.DynamicScan" xml:space="preserve">
+    <value>Scan dynamique</value>
+  </data>
+  <data name="Application.Security.FortifyScan.ScanType.StaticScan" xml:space="preserve">
+    <value>Scan statique</value>
+  </data>
+  <data name="Application.Security.FortifyScans" xml:space="preserve">
+    <value>Renforcer les numérisations</value>
+  </data>
+  <data name="Application.Security.HSTS" xml:space="preserve">
+    <value>HSTS</value>
+  </data>
+  <data name="Application.Security.ICAP" xml:space="preserve">
+    <value>ICAP</value>
+  </data>
+  <data name="Application.Security.SAD" xml:space="preserve">
+    <value>SAD</value>
+  </data>
+  <data name="Application.Security.SatoExpiry" xml:space="preserve">
+    <value>Expiration Sato</value>
+  </data>
+  <data name="Application.Security.SecurityLevel" xml:space="preserve">
+    <value>Niveau de sécurité</value>
+  </data>
+  <data name="Application.Security.SQLSSLEncryption" xml:space="preserve">
+    <value>Cryptage SSL SQL</value>
+  </data>
+  <data name="Application.Security.StaticRemediationCompleted" xml:space="preserve">
+    <value>Assainissement statique achevé</value>
+  </data>
+  <data name="Application.Security.WAFStatus" xml:space="preserve">
+    <value>Statut WAF</value>
+  </data>
+  <data name="Application.Security.WAFTest" xml:space="preserve">
+    <value>Essai WAF</value>
+  </data>
+  <data name="Application.Security.WebconfigEncrpted" xml:space="preserve">
+    <value>Configuration Web crypté</value>
+  </data>
+  <data name="Application.ServerEnvironment.Server.Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Application.ServerEnvironment.Server.Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Application.ServerEnvironment.Server.URL" xml:space="preserve">
+    <value>URL</value>
+  </data>
+  <data name="Application.ServerEnvironment.Server.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Application.ServerEnvironment.Servers" xml:space="preserve">
+    <value>Serveurs</value>
+  </data>
+  <data name="ApplicationIdentification" xml:space="preserve">
+    <value>Identification de l’application</value>
+  </data>
+  <data name="ApplicationNameRequired" xml:space="preserve">
+    <value>Le nom de l’application est requis.</value>
+  </data>
+  <data name="ApplicationNameTaken" xml:space="preserve">
+    <value>Le nom est déjà pris, veuillez entrer un nom différent.</value>
+  </data>
+  <data name="Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="ApplicationSettings" xml:space="preserve">
+    <value>Paramètres de l’application</value>
+  </data>
+  <data name="ApplicationsTable.AdditionalColumns" xml:space="preserve">
+    <value>Colonnes supplémentaires</value>
+  </data>
+  <data name="ApplicationsTable.AppRestoreConfirm" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir restaurer cette application? Les utilisateurs pourront visualiser et modifier l’application</value>
+  </data>
+  <data name="ApplicationsTable.CustomizeColumns" xml:space="preserve">
+    <value>Personnaliser les colonnes</value>
+  </data>
+  <data name="ApplicationsTable.DeleteCancelled" xml:space="preserve">
+    <value>Désolé, l'action est annulée parce que l'application a été restaurée.</value>
+  </data>
+  <data name="ApplicationsTable.DeleteSuccess" xml:space="preserve">
+    <value>{0} a été supprimé avec succès.</value>
+  </data>
+  <data name="ApplicationsTable.RecoveryDisabled" xml:space="preserve">
+    <value>Vous devez changez le nom de l'application dans le page des paramètres avant que vouz pouvez la restaurer.</value>
+  </data>
+  <data name="ApplicationsTable.RecoverySuccess" xml:space="preserve">
+    <value>{0} a été restauré avec succès.</value>
+  </data>
+  <data name="ApplicationsTable.RestoreCancelled" xml:space="preserve">
+    <value>Désolé, l'action est annulée parce que l'application a été supprimé.</value>
+  </data>
+  <data name="ApplicationsTable.SelectAdditionalColumns" xml:space="preserve">
+    <value>Sélectionner des colonnes supplémentaires dans la liste déroulante ou rechercher en tapant le nom du champ</value>
+  </data>
+  <data name="ApplicationsTable.SelectPlaceholder" xml:space="preserve">
+    <value>Sélectionnez les champs de module supplémentaires à afficher au tableau...</value>
+  </data>
+  <data name="ApplicationTrackingManager" xml:space="preserve">
+    <value>Responsable du suivi des applications</value>
+  </data>
+  <data name="AppName" xml:space="preserve">
+    <value>GSA - Gestionnaire Suivi des Applications</value>
+  </data>
+  <data name="AppSettings.AddModule" xml:space="preserve">
+    <value>Ajouter un module</value>
+  </data>
+  <data name="AppSettings.AddModuleDropdownPlaceholder" xml:space="preserve">
+    <value>Sélectionner un module</value>
+  </data>
+  <data name="AppSettings.ArchiveConfirmSubtitle" xml:space="preserve">
+    <value>L’application deviendra en lecture seule. Elle peut être à nouveau désarchivée par la suite.</value>
+  </data>
+  <data name="AppSettings.ArchiveConfirmTitle" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir archiver cette application?</value>
+  </data>
+  <data name="AppSettings.ArchiveSubtitle" xml:space="preserve">
+    <value>L’application deviendra en lecture seule.</value>
+  </data>
+  <data name="AppSettings.ArchiveSuccessMessage" xml:space="preserve">
+    <value>L'application a été archivée avec succès.</value>
+  </data>
+  <data name="AppSettings.ArchiveTitle" xml:space="preserve">
+    <value>Archiver cette application</value>
+  </data>
+  <data name="AppSettings.DeleteConfirmSubtitle" xml:space="preserve">
+    <value>Cette application sera marquée comme supprimée. Un administrateur pourra toujours le restaurer plus tard.</value>
+  </data>
+  <data name="AppSettings.DeleteConfirmTitle" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer cette application?</value>
+  </data>
+  <data name="AppSettings.DeleteSubtitle" xml:space="preserve">
+    <value>Cette application sera marquée comme supprimée.</value>
+  </data>
+  <data name="AppSettings.DeleteTitle" xml:space="preserve">
+    <value>Supprimer cette application</value>
+  </data>
+  <data name="AppSettings.ExitTooltip" xml:space="preserve">
+    <value>Sortir pour aller à la page d’application</value>
+  </data>
+  <data name="AppSettings.ModulesTitle" xml:space="preserve">
+    <value>Modifier les paramètres du module</value>
+  </data>
+  <data name="AppSettings.NameChangedConfirm" xml:space="preserve">
+    <value>Le nom de l’application a été modifié.</value>
+  </data>
+  <data name="AppSettings.OtherActionsTitle" xml:space="preserve">
+    <value>Autres mesures</value>
+  </data>
+  <data name="AppSettings.Recover.NameChangeRequired" xml:space="preserve">
+    <value>Il y a une application active avez le même nom. Veuillez changer le nom de l'application dans la partie "Renommez l'Application" en haut pourque vous pouvez restaurer l'application.</value>
+  </data>
+  <data name="AppSettings.RecoverConfirmSubtitle" xml:space="preserve">
+    <value>L’application ne sera plus marquée comme supprimée et toutes les fonctions antérieures à la suppression seront restaurées.</value>
+  </data>
+  <data name="AppSettings.RecoverConfirmTitle" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir récupérer cette application?</value>
+  </data>
+  <data name="AppSettings.RecoverSubtitle" xml:space="preserve">
+    <value>L’application ne sera plus marquée comme supprimée et pourra être vue par tous les utilisateurs.</value>
+  </data>
+  <data name="AppSettings.RecoverTitle" xml:space="preserve">
+    <value>Récupérer cette application</value>
+  </data>
+  <data name="AppSettings.RemoveModConfirmSubtitle" xml:space="preserve">
+    <value>Cela supprimera définitivement toutes les données actuellement saisies dans ce module.</value>
+  </data>
+  <data name="AppSettings.RemoveModConfirmTitle" xml:space="preserve">
+    <value>Êtes-vous certain de vouloir supprimer {0}?</value>
+  </data>
+  <data name="AppSettings.RenameTitle" xml:space="preserve">
+    <value>Renommer l’application (nom complet)</value>
+  </data>
+  <data name="AppSettings.UnarchiveConfirmSubtitle" xml:space="preserve">
+    <value>L’application deviendra modifiable.</value>
+  </data>
+  <data name="AppSettings.UnarchiveConfirmTitle" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir désarchiver cette application?</value>
+  </data>
+  <data name="AppSettings.UnarchiveSubtitle" xml:space="preserve">
+    <value>L’application deviendra modifiable.</value>
+  </data>
+  <data name="AppSettings.UnarchiveSuccessMessage" xml:space="preserve">
+    <value>L'application a été désarchivée avec succès.</value>
+  </data>
+  <data name="AppSettings.UnarchiveTitle" xml:space="preserve">
+    <value>Désarchiver cette application</value>
+  </data>
+  <data name="Architecture" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Archive" xml:space="preserve">
+    <value>Archiver</value>
+  </data>
+  <data name="Archived" xml:space="preserve">
+    <value>Archivé</value>
+  </data>
+  <data name="BASMOnboarding" xml:space="preserve">
+    <value>Intégration BASM</value>
+  </data>
+  <data name="Browser" xml:space="preserve">
+    <value>Browser</value>
+  </data>
+  <data name="Calendar" xml:space="preserve">
+    <value>Calendrier</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Choose" xml:space="preserve">
+    <value>Choisir...</value>
+  </data>
+  <data name="ClearAll" xml:space="preserve">
+    <value>Supprimer tout</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Complete" xml:space="preserve">
+    <value>Achevé</value>
+  </data>
+  <data name="Confirmation" xml:space="preserve">
+    <value>Confirmation</value>
+  </data>
+  <data name="ConfirmEmail" xml:space="preserve">
+    <value>Confirmer le courriel</value>
+  </data>
+  <data name="ContactForm.AddCustom" xml:space="preserve">
+    <value>Ajouter un contact personnalisé</value>
+  </data>
+  <data name="ContactForm.AutoSubscribeInfo" xml:space="preserve">
+    <value>En choissisant un(e) utilisateur(e) existant(e), il/elle soit abonné aux notifications pour cette application.</value>
+  </data>
+  <data name="ContactForm.EditCurrent" xml:space="preserve">
+    <value>Modifier le contact actuel</value>
+  </data>
+  <data name="ContactForm.FillOutFields" xml:space="preserve">
+    <value>Remplissez les champs ci-dessous ou...</value>
+  </data>
+  <data name="ContactForm.SelectAllUsers" xml:space="preserve">
+    <value>Sélectionner tous les utilisateurs</value>
+  </data>
+  <data name="ContactForm.SelectExistingUser" xml:space="preserve">
+    <value>Sélectionner un utilisateur existant</value>
+  </data>
+  <data name="ContactForm.SelectFromList" xml:space="preserve">
+    <value>Sélectionnez un contact dans la liste des utilisateurs ci-dessous ou...</value>
+  </data>
+  <data name="Contacts" xml:space="preserve">
+    <value>Personnes-ressources</value>
+  </data>
+  <data name="CultureSelector.AltLanguage" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="CurrentRole" xml:space="preserve">
+    <value>Rôle actuel</value>
+  </data>
+  <data name="CurrentVersion" xml:space="preserve">
+    <value>La version actuelle</value>
+  </data>
+  <data name="CustomizeWidgets" xml:space="preserve">
+    <value>Personnaliser les widgets</value>
+  </data>
+  <data name="CustomizingWidgets" xml:space="preserve">
+    <value>Personnalisation des widgets...</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Chaque jour</value>
+  </data>
+  <data name="Dark" xml:space="preserve">
+    <value>Foncé</value>
+  </data>
+  <data name="Dashboard" xml:space="preserve">
+    <value>Tableau de bord</value>
+  </data>
+  <data name="Dashboard.AddWidget" xml:space="preserve">
+    <value>Ajouter un widget</value>
+  </data>
+  <data name="Dashboard.AllWidgetsSelected" xml:space="preserve">
+    <value>Vous avez déjà sélectionné tous les widgets disponibles.</value>
+  </data>
+  <data name="Dashboard.CalendarWidgetDescription" xml:space="preserve">
+    <value>Le widget calendrier contient un calendrier sélectionnable pour rechercher des événements sur un jour/mois particulier.</value>
+  </data>
+  <data name="Dashboard.ChooseWidgets" xml:space="preserve">
+    <value>Choisir les widgets à ajouter</value>
+  </data>
+  <data name="Dashboard.ContactWidgetDescription" xml:space="preserve">
+    <value>Le widget des contacts montre les informations de contact des chefs d’équipe et des gestionnaires des applications favorites.</value>
+  </data>
+  <data name="Dashboard.NoOverdueTasks" xml:space="preserve">
+    <value>Vous n’avez pas de tâches en retard</value>
+  </data>
+  <data name="Dashboard.NoScheduledTasksDay" xml:space="preserve">
+    <value>Il n’y a pas de tâches prévues ce jour-là</value>
+  </data>
+  <data name="Dashboard.NoScheduledTasksMonth" xml:space="preserve">
+    <value>Il n’y a pas de tâches prévues pour ce mois-là</value>
+  </data>
+  <data name="Dashboard.NoUpcomingTasks" xml:space="preserve">
+    <value>Vous n’avez pas de tâches à venir</value>
+  </data>
+  <data name="Dashboard.RemindersWidgetDescription" xml:space="preserve">
+    <value>L’application de rappels affiche une liste des tâches en retard et à venir.</value>
+  </data>
+  <data name="Dashboard.TasksOnDate" xml:space="preserve">
+    <value>Tâches prévues le {0} :</value>
+  </data>
+  <data name="Dashboard.UpdateTask" xml:space="preserve">
+    <value>Mise à jour du module {0} de {1}</value>
+  </data>
+  <data name="Database" xml:space="preserve">
+    <value>Base de données</value>
+  </data>
+  <data name="DatabaseEnvironment" xml:space="preserve">
+    <value>Environnement des bases de données</value>
+  </data>
+  <data name="DatabaseTable.AddNew" xml:space="preserve">
+    <value>Ajouter une nouvelle entrée dans la base de données</value>
+  </data>
+  <data name="DatabaseTable.Edit" xml:space="preserve">
+    <value>Modifier une entrée de la base de données</value>
+  </data>
+  <data name="DataTable.InvalidInt" xml:space="preserve">
+    <value>Entrée invalide, veuillez entrer un nombre entier</value>
+  </data>
+  <data name="DataTable.InvalidIntRange" xml:space="preserve">
+    <value>La valeur doit être entre {0} et {1} inclus.</value>
+  </data>
+  <data name="DataTable.InvalidLowerRange" xml:space="preserve">
+    <value>La valeur doit être au moins {0}.</value>
+  </data>
+  <data name="DataTable.InvalidUpperRange" xml:space="preserve">
+    <value>La valeur doit être au maximum {0}.</value>
+  </data>
+  <data name="DataTable.LinkInputInstructions" xml:space="preserve">
+    <value>Entrer chaque lien sur une ligne distincte. Chaque lien doit commencer par « https:// » ou « http:// ».</value>
+  </data>
+  <data name="DataTable.NestedTableDescription" xml:space="preserve">
+    <value>Vous pouvez développer ou réduire l'information dans ce tableau.</value>
+  </data>
+  <data name="DataTable.NestedTableError" xml:space="preserve">
+    <value>Nous sommes désolés. Il semble que quelque chose d’inattendu se soit produit. Notre équipe s’en occupera rapidement.</value>
+  </data>
+  <data name="DataTable.ValueNotAnOption" xml:space="preserve">
+    <value>La valeur est dépréciée.</value>
+  </data>
+  <data name="Deactivate" xml:space="preserve">
+    <value>Désactiver</value>
+  </data>
+  <data name="DeactivatedUsers" xml:space="preserve">
+    <value>Utilisateurs désactivés</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="DeleteApplication" xml:space="preserve">
+    <value>Supprimer l’application</value>
+  </data>
+  <data name="DeleteConfirmationGeneric" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer ceci?</value>
+  </data>
+  <data name="Deleted" xml:space="preserve">
+    <value>Supprimé</value>
+  </data>
+  <data name="Deny" xml:space="preserve">
+    <value>Refuser</value>
+  </data>
+  <data name="Dependees" xml:space="preserve">
+    <value>Applications dépendantes</value>
+  </data>
+  <data name="DependeesTable.Description" xml:space="preserve">
+    <value>Ce tableau contient les applications qui sont dépendantes de cette application.</value>
+  </data>
+  <data name="Dependencies" xml:space="preserve">
+    <value>Dépendances</value>
+  </data>
+  <data name="DependencyForm.LinkToAddNewApp" xml:space="preserve">
+    <value>Essayer d’ajouter une nouvelle application.</value>
+  </data>
+  <data name="DependencyForm.NoApplicationsSubtitle" xml:space="preserve">
+    <value>Vous ne trouvez pas l’application que vous cherchez? Peut-être qu’elle n’a pas encore été ajoutée.</value>
+  </data>
+  <data name="DependencyForm.NoApplicationsTitle" xml:space="preserve">
+    <value>Aucune autre application ne peut être ajoutée.</value>
+  </data>
+  <data name="DependencyTable.ConfirmDelete" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer cette dépendance?</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Development" xml:space="preserve">
+    <value>Développement</value>
+  </data>
+  <data name="Discard" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Done" xml:space="preserve">
+    <value>Terminé</value>
+  </data>
+  <data name="DuplicateAppName" xml:space="preserve">
+    <value>Il semble qu’il existe déjà une application nommée {0}. Visualiser {1} ou entrer un nom différent pour votre application.</value>
+  </data>
+  <data name="DynamicScan" xml:space="preserve">
+    <value>Balayage dynamique</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Modifier</value>
+  </data>
+  <data name="EditContact" xml:space="preserve">
+    <value>Modifier le contact</value>
+  </data>
+  <data name="EditValues" xml:space="preserve">
+    <value>Modifier les valeurs</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Courriel</value>
+  </data>
+  <data name="Empty" xml:space="preserve">
+    <value>Vide</value>
+  </data>
+  <data name="English" xml:space="preserve">
+    <value>Anglais</value>
+  </data>
+  <data name="Error.ContactUs" xml:space="preserve">
+    <value>Si le même problème persiste, veuillez nous contacter à :</value>
+  </data>
+  <data name="Error.DefaultReturn" xml:space="preserve">
+    <value>Retour au tableau de bord</value>
+  </data>
+  <data name="Error.Description" xml:space="preserve">
+    <value>Nous sommes désolés. Le problème a été enregistré et notre équipe s’efforcera de le résoudre dès que possible.</value>
+  </data>
+  <data name="Error.FeedbackForm.AddDetails" xml:space="preserve">
+    <value>Ajouter les détails ici...</value>
+  </data>
+  <data name="Error.FeedbackForm.Description" xml:space="preserve">
+    <value>Fournissez des détails supplémentaires sur la façon dont vous avez obtenu cette erreur, afin que nous puissions diagnostiquer et résoudre le problème plus rapidement.</value>
+  </data>
+  <data name="Error.FeedbackForm.SubmitSuccessMsg" xml:space="preserve">
+    <value>La soumission a été réussie. Merci de votre participation!</value>
+  </data>
+  <data name="Error.FeedbackForm.Title" xml:space="preserve">
+    <value>Aidez-nous à diagnostiquer l’erreur.</value>
+  </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>Oups, quelque chose s’est mal passé.</value>
+  </data>
+  <data name="Everyone" xml:space="preserve">
+    <value>Tout le monde</value>
+  </data>
+  <data name="Exit" xml:space="preserve">
+    <value>Sortir</value>
+  </data>
+  <data name="ExpandToView" xml:space="preserve">
+    <value>Agrandir pour voir</value>
+  </data>
+  <data name="External" xml:space="preserve">
+    <value>Externe</value>
+  </data>
+  <data name="False" xml:space="preserve">
+    <value>Faux</value>
+  </data>
+  <data name="Favourites" xml:space="preserve">
+    <value>Favoris</value>
+  </data>
+  <data name="Feature" xml:space="preserve">
+    <value>Caractéristique</value>
+  </data>
+  <data name="Featured" xml:space="preserve">
+    <value>En vedette</value>
+  </data>
+  <data name="FeaturedModules" xml:space="preserve">
+    <value>Modules en vedette</value>
+  </data>
+  <data name="Field" xml:space="preserve">
+    <value>Champ</value>
+  </data>
+  <data name="FortifyReportForm.EnterNotes" xml:space="preserve">
+    <value>Entrer des notes pour ce rapport...</value>
+  </data>
+  <data name="FortifyReportsTable.AddNew" xml:space="preserve">
+    <value>Ajouter un nouveau rapport de balayage fortifié</value>
+  </data>
+  <data name="FortifyReportsTable.Edit" xml:space="preserve">
+    <value>Modifier le rapport de balayage fortifié</value>
+  </data>
+  <data name="FortifyScan" xml:space="preserve">
+    <value>Scan de renforcement</value>
+  </data>
+  <data name="French" xml:space="preserve">
+    <value>Français</value>
+  </data>
+  <data name="FullWidth" xml:space="preserve">
+    <value>Largeur totale</value>
+  </data>
+  <data name="GlobalSearch.InputPlaceholder" xml:space="preserve">
+    <value>Faire une recherche dans ATM...</value>
+  </data>
+  <data name="GlobalSearch.ListItems" xml:space="preserve">
+    <value>{0} résultat(s)</value>
+  </data>
+  <data name="GlobalSearch.NestedModuleMatches" xml:space="preserve">
+    <value>{0} résultat(s)</value>
+  </data>
+  <data name="GlobalSearch.RecentSearches" xml:space="preserve">
+    <value>Recherches récentes</value>
+  </data>
+  <data name="GoBack" xml:space="preserve">
+    <value>Retourner</value>
+  </data>
+  <data name="HalfWidth" xml:space="preserve">
+    <value>Demi-largeur</value>
+  </data>
+  <data name="HelpPage" xml:space="preserve">
+    <value>Page d’aide GSA</value>
+  </data>
+  <data name="HelpPage.&amp;&amp;operator" xml:space="preserve">
+    <value>Exploitant &amp;&amp;</value>
+  </data>
+  <data name="HelpPage.&amp;&amp;operator.Paragraph1" xml:space="preserve">
+    <value>L’exploitant &amp;&amp; est utilisé pour rechercher des pages qui contiennent plusieurs termes.</value>
+  </data>
+  <data name="HelpPage.&amp;&amp;operator.Paragraph2" xml:space="preserve">
+    <value>Par exemple, si vous souhaitez trouver le module de sécurité de l’application MSAPR, vous pouvez taper « MSAPR &amp;&amp; security ». La recherche sera des pages contenant les deux termes « MSAPR » et « sécurité ».</value>
+  </data>
+  <data name="HelpPage.&amp;&amp;operator.Paragraph3" xml:space="preserve">
+    <value>Vous pouvez utiliser l’exploitant &amp;&amp; dans une recherche autant de fois que vous le souhaitez.</value>
+  </data>
+  <data name="HelpPage.ArchiveDelRecoverApps" xml:space="preserve">
+    <value>Archivage, suppression et récupération d’applications</value>
+  </data>
+  <data name="HelpPage.ArchiveDelRecoverApps.Paragraph1" xml:space="preserve">
+    <value>Actuellement, seuls les administrateurs peuvent archiver, supprimer et récupérer des applications.</value>
+  </data>
+  <data name="HelpPage.ArchivingApps" xml:space="preserve">
+    <value>Archiver des applications</value>
+  </data>
+  <data name="HelpPage.ArchivingApps.Paragraph1" xml:space="preserve">
+    <value>L’archivage d’une application la fait passer en mode lecture seule et lui donne le statut de déclassée. Les utilisateurs ne seront pas en mesure d’apporter des modifications à une application archivée.</value>
+  </data>
+  <data name="HelpPage.ArchivingApps.Paragraph2" xml:space="preserve">
+    <value>Pour archiver une application, il faut d’abord accéder à la page de l’application que vous souhaitez archiver. Ensuite, cliquez sur le bouton des paramètres situé en haut à droite de la page pour accéder à la page des paramètres de cette application. Faire défiler jusqu’au bas de la page des paramètres et cliquer sur le bouton d’archivage sous la section des autres actions. Confirmez votre décision dans la fenêtre contextuelle qui s’affiche.</value>
+  </data>
+  <data name="HelpPage.ArchivingApps.Paragraph3" xml:space="preserve">
+    <value>Vous pouvez suivre les mêmes étapes pour désarchiver une application.</value>
+  </data>
+  <data name="HelpPage.CustomizationOptions" xml:space="preserve">
+    <value>Options de personnalisation</value>
+  </data>
+  <data name="HelpPage.DelApps" xml:space="preserve">
+    <value>Supprimer l’application</value>
+  </data>
+  <data name="HelpPage.DelApps.Paragraph1" xml:space="preserve">
+    <value>La suppression d’une application rendra l’application inaccessible à tous les utilisateurs non administrateurs. Les utilisateurs de l’administration pourront toujours voir l’application dans la page de récupération de l’application.</value>
+  </data>
+  <data name="HelpPage.DelApps.Paragraph2" xml:space="preserve">
+    <value>Pour supprimer une application, il faut d’abord accéder à la page de l’application que vous souhaitez supprimer. Ensuite, cliquez sur le bouton des paramètres situé en haut à droite de la page pour accéder à la page des paramètres de cette application. Faire défiler jusqu’au bas de la page des paramètres et cliquer sur le bouton de suppression sous la section des autres actions. Confirmez votre décision dans la fenêtre contextuelle qui s’affiche. Notez que les applications supprimées à l’aide des étapes susmentionnées peuvent toujours être récupérées.</value>
+  </data>
+  <data name="HelpPage.DelApps.Paragraph3" xml:space="preserve">
+    <value>Pour supprimer définitivement une application, suivez les étapes supplémentaires suivantes. Notez que les applications ne pourront pas être récupérées après ces étapes. Allez dans votre barre latérale et cliquez sur l’option de récupération des applications dans le sous-menu du panneau d’administration. Le clic vous dirigera vers la page de récupération des applications. Recherchez votre application dans le tableau affiché. Cliquez sur l’option de suppression dans la colonne d’action du tableau.</value>
+  </data>
+  <data name="HelpPage.EmailNotifs" xml:space="preserve">
+    <value>Envoyez des avis par courriel</value>
+  </data>
+  <data name="HelpPage.EmailNotifs.Paragraph1" xml:space="preserve">
+    <value>Vous recevrez immédiatement un courriel chaque fois qu’une annonce vous sera envoyée par un administrateur. Les rappels vous sont envoyés par courrier électronique à 5 h trois jours avant la date d’échéance de la mise à jour. Chaque vendredi, un condensé de tous les avis reçus cette semaine-là (y compris les annonces, les rappels et les mises à jour) vous est envoyé par courrier électronique. Notez que les courriels ne seront pas envoyés les semaines où il n’y a pas d’avis.</value>
+  </data>
+  <data name="HelpPage.EmailNotifs.Paragraph2" xml:space="preserve">
+    <value>Vous pouvez choisir de modifier la fréquence de réception des condensés par courriel, ainsi que le jour de la semaine où vous souhaitez les recevoir. Vous pouvez également choisir de ne plus recevoir d’avis par courrier électronique.</value>
+  </data>
+  <data name="HelpPage.EmailNotifs.Paragraph3" xml:space="preserve">
+    <value>Pour personnaliser les paramètres des avis par courriel, allez à la page des paramètres et passez à l’onglet des avis. Utilisez les options de personnalisation dans la section des avis par courriel.</value>
+  </data>
+  <data name="HelpPage.FavAndSubApps" xml:space="preserve">
+    <value>Favoriser et s’abonner à des applications</value>
+  </data>
+  <data name="HelpPage.FavAndSubApps.Paragraph1" xml:space="preserve">
+    <value>Pour favoriser ou s’abonner à une application, il faut d’abord se rendre sur la page de l’application qui vous intéresse.</value>
+  </data>
+  <data name="HelpPage.FavAndSubApps.Paragraph2" xml:space="preserve">
+    <value>Pour favoriser une application, cliquez sur le bouton de l’icône étoile en haut à droite de la page de l’application. Favoriser une application ajoute l’application à votre liste de favoris dans la barre latérale. Il vous inscrit également automatiquement à l’application, ce qui signifie que vous recevrez des avis de mise à jour et de rappel des modifications apportées à l’application par d’autres utilisateurs. En cliquant sur une nouvelle fois sur l’icône en forme d’étoile, vous désapprouverez l’application et elle n’apparaîtra plus dans votre liste de favoris. Cependant, vous serez toujours inscrit à l’application. Si vous êtes inscrit à une application, le bouton d’inscription, situé à côté du bouton de l’icône étoile, sera coché dans sa partie gauche. Pour vous désinscrire d’une application, cliquez sur ce bouton. La coche devrait disparaître.</value>
+  </data>
+  <data name="HelpPage.InAppNotifs" xml:space="preserve">
+    <value>Avis dans l’application</value>
+  </data>
+  <data name="HelpPage.InAppNotifs.Paragraph1" xml:space="preserve">
+    <value>Les avis dans l’application peuvent être consultés en cliquant sur l’icône de la cloche située dans la partie droite de la barre supérieure. Un point rouge apparaît à côté de l’icône de la cloche s’il y a des avis non lus. En cliquant sur l’icône de la cloche, une liste déroulante s’ouvre avec deux onglets, alertes et mises à jour. L’onglet « Alertes » contient les annonces et les rappels, tandis que l’onglet « Mises à jour » contient les mises à jour.</value>
+  </data>
+  <data name="HelpPage.InAppNotifs.Paragraph2" xml:space="preserve">
+    <value>Si vous recevez un avis lorsque vous êtes connecté, une fenêtre contextuelle apparaîtra dans le coin supérieur droit de l’écran contenant cet avis.</value>
+  </data>
+  <data name="HelpPage.InAppNotifs.Paragraph3" xml:space="preserve">
+    <value>Si vous recevez des avis lorsque vous êtes déconnecté, les annonces et les rappels que vous avez manqués apparaîtront dans des fenêtres contextuelles lors de votre première connexion à l’application. Vous pouvez également cliquer sur l’icône de la cloche pour vérifier tous les avis que vous avez reçus pendant votre absence.</value>
+  </data>
+  <data name="HelpPage.InAppNotifs.Paragraph4" xml:space="preserve">
+    <value>Vous pouvez choisir de ne plus recevoir d’avis dans des fenêtres contextuelles pour les mises à jour et les rappels. Pour ce faire, accédez à la page des paramètres et passez à l’onglet des avis. Utilisez les options de personnalisation dans la section des avis sous forme de fenêtres contextuelles de l’application.</value>
+  </data>
+  <data name="HelpPage.InAppNotifs.Paragraph5" xml:space="preserve">
+    <value>Vous ne pouvez pas désactiver les avis en fenêtres contextuelles pour les annonces.</value>
+  </data>
+  <data name="HelpPage.Notifications.Paragraph1" xml:space="preserve">
+    <value>Il existe trois types d’avis au total : les annonces, les rappels et les mises à jour.</value>
+  </data>
+  <data name="HelpPage.Notifications.Paragraph2" xml:space="preserve">
+    <value>Les annonces sont de courts messages créés par les administrateurs. Les administrateurs peuvent choisir les utilisateurs à qui envoyer une annonce. Les rappels vous informent des prochaines mises à jour programmées pour les applications que vous avez favorisées trois jours avant la date d’échéance de la mise à jour. Les mises à jour vous informent lorsque des modifications sont apportées aux champs des modules de vos applications favorites, sauf si ces modifications sont effectuées par vous-même.</value>
+  </data>
+  <data name="HelpPage.Notifications.Paragraph3" xml:space="preserve">
+    <value>Vous pouvez consulter les avis de deux manières : depuis l’application ATM ou depuis la boîte aux lettres électronique associée à votre compte ATM.</value>
+  </data>
+  <data name="HelpPage.QuickSearch.Paragraph1" xml:space="preserve">
+    <value>La recherche rapide est située dans la partie droite de la barre supérieure. En cliquant dessus, vous ouvrez une fenêtre contextuelle qui vous permet de rechercher rapidement un élément dans ATM et de naviguer vers la page contenant vos termes de recherche. Vous pouvez utiliser des noms d’application, des noms de module, des champs de module et des valeurs de champ de module comme termes de recherche.</value>
+  </data>
+  <data name="HelpPage.QuickSearch.Paragraph2" xml:space="preserve">
+    <value>Vous pouvez utiliser les exploitants &amp;&amp; et || pour combiner les équipes de recherche et effectuer des recherches plus avancées.</value>
+  </data>
+  <data name="HelpPage.RecoverApps" xml:space="preserve">
+    <value>Récupération des applications</value>
+  </data>
+  <data name="HelpPage.RecoverApps.Paragraph1" xml:space="preserve">
+    <value>Pour récupérer une application supprimée, allez dans votre barre latérale et cliquez sur l’option de récupération des applications dans le sous-menu du panneau d’administration. Le clic vous dirigera vers la page de récupération des applications. Recherchez votre application dans le tableau affiché. Cliquez sur l’option de récupération dans la colonne d’action du tableau.</value>
+  </data>
+  <data name="HelpPage.RecoverApps.Paragraph2" xml:space="preserve">
+    <value>Notez que vous ne pourrez pas récupérer les applications supprimées définitivement et qu’elles n’apparaîtront pas dans le tableau.</value>
+  </data>
+  <data name="HelpPage.||operator" xml:space="preserve">
+    <value>|| exploitant</value>
+  </data>
+  <data name="HelpPage.||operator.Paragraph1" xml:space="preserve">
+    <value>L’exploitant || est utilisé pour rechercher des pages qui contiennent un ou plusieurs des termes de recherche multiple.</value>
+  </data>
+  <data name="HelpPage.||operator.Paragraph2" xml:space="preserve">
+    <value>Par exemple, si vous souhaitez trouver toutes les applications qui contiennent le module de sécurité ou d’identification, vous pouvez taper « sécurité || identification ».</value>
+  </data>
+  <data name="HelpPage.||operator.Paragraph3" xml:space="preserve">
+    <value>Vous pouvez utiliser l’exploitant &amp;&amp; dans une recherche autant de fois que vous le souhaitez.</value>
+  </data>
+  <data name="Hide" xml:space="preserve">
+    <value>Cacher</value>
+  </data>
+  <data name="IIS" xml:space="preserve">
+    <value>IIS</value>
+  </data>
+  <data name="Internal" xml:space="preserve">
+    <value>Interne</value>
+  </data>
+  <data name="ItemSelected" xml:space="preserve">
+    <value>{0} sélectionné</value>
+  </data>
+  <data name="ITLevel" xml:space="preserve">
+    <value>Niveau de TI</value>
+  </data>
+  <data name="LastUpdated" xml:space="preserve">
+    <value>Dernière mise à jour</value>
+  </data>
+  <data name="Light" xml:space="preserve">
+    <value>Classique</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Téléchargement...</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Fermeture de session</value>
+  </data>
+  <data name="ManageUsers" xml:space="preserve">
+    <value>Gérer les utilisateurs</value>
+  </data>
+  <data name="MaximumCharacters" xml:space="preserve">
+    <value>Caractères maximum</value>
+  </data>
+  <data name="ModifyUser" xml:space="preserve">
+    <value>Modifier un utilisateur</value>
+  </data>
+  <data name="ModuleName" xml:space="preserve">
+    <value>Nom du module</value>
+  </data>
+  <data name="ModulePage.AppArchived" xml:space="preserve">
+    <value>Cette application a été archivée, ce module est donc en consultation seulement et vous ne pouvez pas y apporter de modifications.</value>
+  </data>
+  <data name="ModulePage.AppDeleted" xml:space="preserve">
+    <value>Cette application a été supprimée.</value>
+  </data>
+  <data name="ModulePage.AppDeletedUnauthorized.Desc" xml:space="preserve">
+    <value>Malheureusement, vous ne pouvez pas visualiser cette application étant donné qu’elle a été supprimée. Seuls les administrateurs peuvent voir et récupérer les applications supprimées.</value>
+  </data>
+  <data name="ModulePage.AppDeletedUnauthorized.Title" xml:space="preserve">
+    <value>Désolé, il semble que cette application ait été supprimée.</value>
+  </data>
+  <data name="ModulePage.DependencyDeleted" xml:space="preserve">
+    <value>Dépendance supprimée avec succès!</value>
+  </data>
+  <data name="ModulePage.DueWithinAWeek" xml:space="preserve">
+    <value>Dû dans une semaine</value>
+  </data>
+  <data name="ModulePage.FixErrorsAndSaveAgain" xml:space="preserve">
+    <value>Il y a quelques erreurs. Veuillez les réparer et sauvegarder à nouveau.</value>
+  </data>
+  <data name="ModulePage.Forms.InvalidURL" xml:space="preserve">
+    <value>La URL doit commencer avec "http://" ou "https://". Ne utilisez pas les caractères blanc.</value>
+  </data>
+  <data name="ModulePage.HubErrorAlert" xml:space="preserve">
+    <value>Il y a eu un problème de connexion au centre en direct. Vous pouvez toujours modifier les modules, mais les abonnés à cette application ne recevront pas de fenêtres contextuelles de mise à jour en direct.</value>
+  </data>
+  <data name="ModulePage.LastUpdatedBy" xml:space="preserve">
+    <value>Dernière mise à jour par</value>
+  </data>
+  <data name="ModulePage.MinNextUpdateRequired" xml:space="preserve">
+    <value>La prochaine mise à jour requise doit avoir lieu au moins {0} jours après aujourd’hui.</value>
+  </data>
+  <data name="ModulePage.NestedTableError" xml:space="preserve">
+    <value>Désolé, le tableau imbriqué n’a pas pu être chargé...</value>
+  </data>
+  <data name="ModulePage.NextUpdateRequired" xml:space="preserve">
+    <value>Prochaine mise à jour requise</value>
+  </data>
+  <data name="ModulePage.NoChanges" xml:space="preserve">
+    <value>Il n’y a pas de changement à sauvegarder.</value>
+  </data>
+  <data name="ModulePage.ReturnToApplications" xml:space="preserve">
+    <value>Retournez aux applications</value>
+  </data>
+  <data name="ModulePage.SaveSuccess" xml:space="preserve">
+    <value>Les modifications ont été sauvegardées avec succès!</value>
+  </data>
+  <data name="ModulePage.StatusLockedMessage" xml:space="preserve">
+    <value>Veuillez mettre à jour le champ de date « Prochaine mise à jour requise » afin de modifier le statut.</value>
+  </data>
+  <data name="ModulePage.TableError" xml:space="preserve">
+    <value>Désolé, il y a eu un problème de chargement des données du tableau. Veuillez réessayer plus tard.</value>
+  </data>
+  <data name="ModulePage.UserNotExist" xml:space="preserve">
+    <value>L’utilisateur n’existe plus</value>
+  </data>
+  <data name="ModuleTable.AddNewRow" xml:space="preserve">
+    <value>Ajouter une nouvelle rangée</value>
+  </data>
+  <data name="Month" xml:space="preserve">
+    <value>Mois</value>
+  </data>
+  <data name="N/A" xml:space="preserve">
+    <value>S/O</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="NeedsAttention" xml:space="preserve">
+    <value>Nécessite une attention</value>
+  </data>
+  <data name="NewAnnouncement" xml:space="preserve">
+    <value>Nouvelle annonce</value>
+  </data>
+  <data name="NewApplication" xml:space="preserve">
+    <value>Nouvelle application</value>
+  </data>
+  <data name="NewDevelopment" xml:space="preserve">
+    <value>Nouveau développement</value>
+  </data>
+  <data name="NewName" xml:space="preserve">
+    <value>Nouveau nom</value>
+  </data>
+  <data name="Next" xml:space="preserve">
+    <value>La suite</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Non</value>
+  </data>
+  <data name="NoManager" xml:space="preserve">
+    <value>Aucun gestionnaire</value>
+  </data>
+  <data name="NoResultsFound" xml:space="preserve">
+    <value>Aucun résultat trouvé...</value>
+  </data>
+  <data name="NotAuthorized" xml:space="preserve">
+    <value>Non autorisé</value>
+  </data>
+  <data name="NotComplete" xml:space="preserve">
+    <value>Pas achevé</value>
+  </data>
+  <data name="NoTeamLead" xml:space="preserve">
+    <value>Aucun chef d’équipe</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Notifs.AlertsMessage" xml:space="preserve">
+    <value>La prochaine mise à jour prévue pour {0} est le {1}.</value>
+  </data>
+  <data name="Notifs.AlertsTitle" xml:space="preserve">
+    <value>Mise à jour requise pour {0}</value>
+  </data>
+  <data name="Notifs.AnnouncementMessage" xml:space="preserve">
+    <value>Envoyé par {0} le {1} : {2}</value>
+  </data>
+  <data name="Notifs.AnnouncementMetadata" xml:space="preserve">
+    <value>Envoyé par {0}, {1}</value>
+  </data>
+  <data name="Notifs.AnnouncementTitle" xml:space="preserve">
+    <value>Annonce : {0}</value>
+  </data>
+  <data name="Notifs.CaughtUpText" xml:space="preserve">
+    <value>Tout est rattrapé!</value>
+  </data>
+  <data name="Notifs.LoadingText" xml:space="preserve">
+    <value>Les notifications sont en cours de chargement...</value>
+  </data>
+  <data name="Notifs.MarkAsRead" xml:space="preserve">
+    <value>Marquer comme lu</value>
+  </data>
+  <data name="Notifs.TurnOffNotifs" xml:space="preserve">
+    <value>Désactiver les avis</value>
+  </data>
+  <data name="Notifs.UpdateMessageTemp" xml:space="preserve">
+    <value>{0} modifié {1}</value>
+  </data>
+  <data name="Notifs.UpdatesMessage" xml:space="preserve">
+    <value>{0} modifié {1} dans {2}</value>
+  </data>
+  <data name="Notifs.UpdatesTitle" xml:space="preserve">
+    <value>Nouvelles mises à jour dans {0}</value>
+  </data>
+  <data name="NotRequired" xml:space="preserve">
+    <value>Non requis</value>
+  </data>
+  <data name="NumResults" xml:space="preserve">
+    <value>{0} résultats</value>
+  </data>
+  <data name="OnHold" xml:space="preserve">
+    <value>En attente</value>
+  </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Facultatif</value>
+  </data>
+  <data name="Overdue" xml:space="preserve">
+    <value>En retard</value>
+  </data>
+  <data name="OverdueTasks" xml:space="preserve">
+    <value>Tâches en retard</value>
+  </data>
+  <data name="Page" xml:space="preserve">
+    <value>Page</value>
+  </data>
+  <data name="PowerUser" xml:space="preserve">
+    <value>Utilisateur avancé</value>
+  </data>
+  <data name="Previous" xml:space="preserve">
+    <value>Précédente</value>
+  </data>
+  <data name="PrimaryName" xml:space="preserve">
+    <value>Nom principal</value>
+  </data>
+  <data name="Production" xml:space="preserve">
+    <value>Production</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="ProfilePage.OnlyAdminsCanModify" xml:space="preserve">
+    <value>Seuls les administrateurs peuvent modifier ce champ.</value>
+  </data>
+  <data name="QA" xml:space="preserve">
+    <value>QA</value>
+  </data>
+  <data name="QC" xml:space="preserve">
+    <value>QC</value>
+  </data>
+  <data name="QuickSearch" xml:space="preserve">
+    <value>Recherche rapide</value>
+  </data>
+  <data name="Reactivate" xml:space="preserve">
+    <value>Réactiver</value>
+  </data>
+  <data name="ReadOnly" xml:space="preserve">
+    <value>Lecture seule</value>
+  </data>
+  <data name="Recover" xml:space="preserve">
+    <value>Récupérer</value>
+  </data>
+  <data name="RecoverApplications" xml:space="preserve">
+    <value>Récupérer les applications</value>
+  </data>
+  <data name="RefreshPage" xml:space="preserve">
+    <value>Rafraîchir la page</value>
+  </data>
+  <data name="Registration.AccountInfo" xml:space="preserve">
+    <value>Informations sur l’enregistrement du compte</value>
+  </data>
+  <data name="Registration.DeactivatedDescription" xml:space="preserve">
+    <value>Il semble que votre compte ait été désactivé par un administrateur. Pour plus d’informations ou pour faire réactiver votre compte, veuillez contacter</value>
+  </data>
+  <data name="Registration.DeactivatedMessage" xml:space="preserve">
+    <value>Compte désactivé</value>
+  </data>
+  <data name="Registration.FurtherInquiries" xml:space="preserve">
+    <value>Pour de plus amples informations, veuillez contacter votre directeur/directrice ou chef d'équipe.</value>
+  </data>
+  <data name="Registration.PendingApproval" xml:space="preserve">
+    <value>Enregistrement du compte en attente d’approbation</value>
+  </data>
+  <data name="Registration.PendingDescription" xml:space="preserve">
+    <value>Vous recevrez un avis par courriel à l’adresse électronique enregistrée (voir ci-dessous) lorsque votre compte aura été approuvé par un administrateur. L’approbation peut prendre jusqu’à 3 à 5 jours ouvrables.</value>
+  </data>
+  <data name="Registration.SubmissionDate" xml:space="preserve">
+    <value>Date de soumission</value>
+  </data>
+  <data name="Registration.SuccessMessage" xml:space="preserve">
+    <value>Votre demande d’enregistrement a été soumise</value>
+  </data>
+  <data name="Registrations" xml:space="preserve">
+    <value>Enregistrements</value>
+  </data>
+  <data name="Reminders" xml:space="preserve">
+    <value>Rappels</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="RemoveContact" xml:space="preserve">
+    <value>Supprimer le contact.</value>
+  </data>
+  <data name="Rename" xml:space="preserve">
+    <value>Renommer</value>
+  </data>
+  <data name="Report" xml:space="preserve">
+    <value>Les rapports</value>
+  </data>
+  <data name="RequestDate" xml:space="preserve">
+    <value>Date de la demande</value>
+  </data>
+  <data name="Required" xml:space="preserve">
+    <value>Requis</value>
+  </data>
+  <data name="Restore" xml:space="preserve">
+    <value>Restaurer</value>
+  </data>
+  <data name="ResultsPerPage" xml:space="preserve">
+    <value>Résultats par page</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Sauvegarder</value>
+  </data>
+  <data name="SaveChanges" xml:space="preserve">
+    <value>Sauvegarder les modifications</value>
+  </data>
+  <data name="SavingChanges" xml:space="preserve">
+    <value>Sauvegarder les modifications...</value>
+  </data>
+  <data name="SearchApplicationName" xml:space="preserve">
+    <value>Rechercher le nom de l’application...</value>
+  </data>
+  <data name="SearchTable" xml:space="preserve">
+    <value>Rechercher le tableau...</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Sécurité</value>
+  </data>
+  <data name="SelectRecipients" xml:space="preserve">
+    <value>Sélectionner les destinataires</value>
+  </data>
+  <data name="SelectRole" xml:space="preserve">
+    <value>Sélectionner le rôle</value>
+  </data>
+  <data name="SelectUserForm.SearchUser" xml:space="preserve">
+    <value>Rechercher le nom de la personne</value>
+  </data>
+  <data name="SendAnnouncement" xml:space="preserve">
+    <value>Envoyer l’annonce</value>
+  </data>
+  <data name="Server" xml:space="preserve">
+    <value>Serveur</value>
+  </data>
+  <data name="ServerEnvironment" xml:space="preserve">
+    <value>Environnement du serveur</value>
+  </data>
+  <data name="ServerTable.AddNew" xml:space="preserve">
+    <value>Ajouter une nouvelle entrée au serveur</value>
+  </data>
+  <data name="ServerTable.Edit" xml:space="preserve">
+    <value>Modifier l’entrée au serveur</value>
+  </data>
+  <data name="SetNewContact" xml:space="preserve">
+    <value>Établir un nouveau contact</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Paramètres</value>
+  </data>
+  <data name="Settings.AppNotifications" xml:space="preserve">
+    <value>Avis sous forme de fenêtre contextuelle dans l’application</value>
+  </data>
+  <data name="Settings.AppRemindersSmall" xml:space="preserve">
+    <value>Recevoir des avis sous forme de fenêtre contextuelle lorsqu’il reste 3 jours avant la date de la « prochaine mise à jour requise » pour un module favori.</value>
+  </data>
+  <data name="Settings.AppUpdatesSmall" xml:space="preserve">
+    <value>Recevoir des avis sous forme de fenêtre contextuelle chaque fois qu’un module de vos applications favorites est modifié par un autre utilisateur.</value>
+  </data>
+  <data name="Settings.ChangeEmailBtn" xml:space="preserve">
+    <value>Changer le courriel...</value>
+  </data>
+  <data name="Settings.ConfirmEmailErr" xml:space="preserve">
+    <value>Le champ de confirmation de courriel ne contient pas d’adresse électronique valide.</value>
+  </data>
+  <data name="Settings.ConfirmEmailLengthErr" xml:space="preserve">
+    <value>Le champ de confirmation du courriel doit comprendre une chaîne d’une longueur maximale de « 200 ».</value>
+  </data>
+  <data name="Settings.EmailErr" xml:space="preserve">
+    <value>Le champ de courriel ne contient pas d’adresse électronique valide.</value>
+  </data>
+  <data name="Settings.EmailFreq" xml:space="preserve">
+    <value>Fréquence des avis de mise à jour</value>
+  </data>
+  <data name="Settings.EmailFreq.DayOfWeek" xml:space="preserve">
+    <value>Jour de la semaine du condensé hebdomadaire</value>
+  </data>
+  <data name="Settings.EmailFreq.SelectDayOfWeek" xml:space="preserve">
+    <value>Sélectionnez le jour auquel vous souhaitez recevoir les condensés hebdomadaires par courrier électronique.</value>
+  </data>
+  <data name="Settings.EmailFreqSmall" xml:space="preserve">
+    <value>Sélectionnez la fréquence à laquelle vous souhaitez recevoir un courriel pour toute mise à jour de n’importe quel module dans toutes vos applications favorites.</value>
+  </data>
+  <data name="Settings.EmailLengthErr" xml:space="preserve">
+    <value>Le champ du courriel doit comprendre une chaîne d’une longueur maximale de « 200 ».</value>
+  </data>
+  <data name="Settings.EmailNotifications" xml:space="preserve">
+    <value>Envoyez des avis par courriel</value>
+  </data>
+  <data name="Settings.EmailOff" xml:space="preserve">
+    <value>Désactiver tous les avis par courriel</value>
+  </data>
+  <data name="Settings.EmailOffSmall" xml:space="preserve">
+    <value>Vous ne recevrez plus de courriels pour les annonces, les rappels des événements à venir et les mises à jour des applications favorites.</value>
+  </data>
+  <data name="Settings.ErrDes" xml:space="preserve">
+    <value>L’adresse électronique et l’adresse électronique de confirmation doivent correspondre</value>
+  </data>
+  <data name="Settings.ITLevelErr" xml:space="preserve">
+    <value>Le niveau de TI doit être compris entre 1 et 5</value>
+  </data>
+  <data name="Settings.ITLevelTip" xml:space="preserve">
+    <value>Seuls les administrateurs peuvent modifier cette valeur.</value>
+  </data>
+  <data name="Settings.ModalTitle" xml:space="preserve">
+    <value>Mettre à jour l’adresse électronique</value>
+  </data>
+  <data name="Settings.NameErr" xml:space="preserve">
+    <value>Le champ du nom est requis</value>
+  </data>
+  <data name="Settings.NameLengthErr" xml:space="preserve">
+    <value>Le nom du champ doit comprendre une chaîne d’une longueur maximale de « 200 ».</value>
+  </data>
+  <data name="Settings.SelectChoose" xml:space="preserve">
+    <value>Choisir le niveau de TI</value>
+  </data>
+  <data name="Settings.UpdateDes" xml:space="preserve">
+    <value>Votre profil a été mis à jour avec succès.</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>Montrer</value>
+  </data>
+  <data name="SMARTUI" xml:space="preserve">
+    <value>SMART UI</value>
+  </data>
+  <data name="StaticScan" xml:space="preserve">
+    <value>Balayage statique</value>
+  </data>
+  <data name="Submit" xml:space="preserve">
+    <value>Soumettre</value>
+  </data>
+  <data name="Submitting" xml:space="preserve">
+    <value>Soumission en cours...</value>
+  </data>
+  <data name="Subscribe" xml:space="preserve">
+    <value>S’inscrire</value>
+  </data>
+  <data name="Subscribed" xml:space="preserve">
+    <value>Abonné</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
+  <data name="ToBeDecommissioned" xml:space="preserve">
+    <value>À mettre hors service</value>
+  </data>
+  <data name="TotalResults" xml:space="preserve">
+    <value>Résultats totaux</value>
+  </data>
+  <data name="True" xml:space="preserve">
+    <value>Vrai</value>
+  </data>
+  <data name="Unarchive" xml:space="preserve">
+    <value>Désarchiver</value>
+  </data>
+  <data name="Unauthorized" xml:space="preserve">
+    <value>Non autorisé</value>
+  </data>
+  <data name="Unfeature" xml:space="preserve">
+    <value>Sans fonctionnalités</value>
+  </data>
+  <data name="UnfeaturedModules" xml:space="preserve">
+    <value>Modules sans fonctionnalités</value>
+  </data>
+  <data name="United" xml:space="preserve">
+    <value>United</value>
+  </data>
+  <data name="Unsubscribe" xml:space="preserve">
+    <value>Se désabonner</value>
+  </data>
+  <data name="UpcomingTasks" xml:space="preserve">
+    <value>Tâches à venir</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Mettre à jour</value>
+  </data>
+  <data name="Updates" xml:space="preserve">
+    <value>Mises à jour</value>
+  </data>
+  <data name="Updating" xml:space="preserve">
+    <value>Mise à jour en cours</value>
+  </data>
+  <data name="UpToDate" xml:space="preserve">
+    <value>À ce jour</value>
+  </data>
+  <data name="Use" xml:space="preserve">
+    <value>Utilisation</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Gestion des utilisateurs</value>
+  </data>
+  <data name="UserManagement.AdminNoDelete" xml:space="preserve">
+    <value>Vous ne pouvez supprimer cet(te) utilisateur(e) parce qu'il/elle est un(e) adminstrateur(e). Veuillez modifier son rôle.</value>
+  </data>
+  <data name="UserManagement.DeleteConfirmation" xml:space="preserve">
+    <value>Êtes-vous sûr de vouloir supprimer {0} compte?</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Valeur</value>
+  </data>
+  <data name="Weekly" xml:space="preserve">
+    <value>Chaque semaine</value>
+  </data>
+  <data name="Widget" xml:space="preserve">
+    <value>Widget</value>
+  </data>
+  <data name="WidgetSettings" xml:space="preserve">
+    <value>Paramètres des widgets</value>
+  </data>
+  <data name="WindowsServer" xml:space="preserve">
+    <value>Windows Server</value>
+  </data>
+  <data name="Year" xml:space="preserve">
+    <value>Année</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Oui</value>
+  </data>
+  <data name="YesDelete" xml:space="preserve">
+    <value>Oui, supprimer</value>
+  </data>
+</root>

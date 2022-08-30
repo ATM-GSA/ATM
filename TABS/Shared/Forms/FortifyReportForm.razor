@@ -1,0 +1,170 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@using System.Reflection
+@using TABS.Data;
+@using Newtonsoft.Json;
+@using System.Text.RegularExpressions;
+@using TABS.Shared.Helpers;
+
+@inject IStringLocalizer<App> Localizer
+
+<Form @ref="form"
+      Model="@model"
+      ValidateOnChange="@true"
+      ValidateMode="@FormValidateMode.Default"
+      OnFinish="OnSubmit"
+      WrapperColSpan="14"
+      LabelColSpan="6"
+      Layout="@FormLayout.Horizontal"
+      OnValidationStateChanged="HandleValidationStateChange"
+      >
+    <FormItem Label="@Localizer[ModuleProperties["Name"].LocalizationKey]">
+        <Input @bind-Value="@context.Name" AllowClear="true" DebounceMilliseconds="500" />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["ReportLink"].LocalizationKey]">
+        <Input @bind-Value="@context.ReportLink" AllowClear="true" DebounceMilliseconds="600" />
+    </FormItem>
+
+    <FormItem Label="@Localizer[ModuleProperties["ScanType"].LocalizationKey]" WrapperColSpan="10">
+        @*<EnumSelect TEnum="FortifyScan.ScanTypeLookUp"
+                    @bind-Value="@context.ScanType"
+                    Placeholder="@Localizer["Choose"]">
+        </EnumSelect>*@
+        <Select DataSource="@_scanTypes"
+                @bind-Value="@context.ScanType"
+                 Placeholder="@Localizer["Choose"]"
+                 LabelName="@nameof(EnumType<FortifyScan.ScanTypeLookUp>.Name)"
+                 ValueName="@nameof(EnumType<FortifyScan.ScanTypeLookUp>.Value)"
+        />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["ScanDate"].LocalizationKey]" WrapperColSpan="10">
+        <DatePicker @bind-Value="@context.ScanDate" Style="width: 100%;" />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["Notes"].LocalizationKey]" WrapperColSpan="14">
+        <TextArea @bind-Value="@context.Notes"
+                  Style="width: 100%; box-sizing: border-box;"
+                  Placeholder="@Localizer["FortifyReportForm.EnterNotes"]"
+                  AutoSize="true"
+                  DebounceMilliseconds="500"
+                  AllowClear="true" />
+    </FormItem>
+    <FormItem WrapperColSpan="14" WrapperColOffset="2">
+        <Button Type="@ButtonType.Primary"
+                HtmlType="submit"
+                Disabled="@(!form.IsModified || !_isValid)"
+                Loading="@_awaitingSave">
+            @Localizer["Save"]
+        </Button>
+    </FormItem>
+</Form>
+
+@code
+
+{
+    private class Model
+    {
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; }
+
+        [Required]
+        public DateTime? ScanDate { get; set; }
+
+        [StringLength(1500)]
+        @*[RegularExpression(@"^(http|https):\/\/([^\s]*)$", ErrorMessage = "URL must start with http:// or https://, and not have any whitespace.")]*@
+        public string ReportLink { get; set; }
+
+        [StringLength(1000)]
+        public string Notes { get; set; }
+
+        [Required]
+        public FortifyScan.ScanTypeLookUp ScanType { get; set; }
+
+    }
+
+    private List<EnumType<FortifyScan.ScanTypeLookUp>> _scanTypes = new List<EnumType<FortifyScan.ScanTypeLookUp>>();
+
+    [Parameter]
+    public EventCallback<FortifyScan> OnSubmitSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public FortifyScan CurrentReport { get; set; }
+
+    private bool _awaitingSave = false;
+
+    private Form<Model> form;
+    private Model model = new Model();
+    private bool submitted = false;
+    private bool _isValid = true;
+
+    private Dictionary<string, ModuleProperty> ModuleProperties = new FortifyScan().GetProperties();
+
+    protected override void OnInitialized()
+    {
+        // Set up _scanTypes
+        // loop through each enum of type FortifyScan.ScanTypeLookUp
+        // Get its localized name, set Name to that
+        // Get its type, set ScanTypeLookUp to that
+        _scanTypes.Clear(); 
+        foreach (FortifyScan.ScanTypeLookUp enumValue in Enum.GetValues(typeof(FortifyScan.ScanTypeLookUp)))
+        {
+            Type _enumType = typeof(FortifyScan.ScanTypeLookUp);
+            string name = EnumTypeExtensions.GetLocalizedDisplayName(_enumType, enumValue);
+            _scanTypes.Add(new EnumType<FortifyScan.ScanTypeLookUp>(name, enumValue));
+        }
+
+
+        model.Name = "";
+        model.Notes = "";
+        model.ReportLink = "";
+        model.ScanType = FortifyScan.ScanTypeLookUp.StaticScan;
+
+        if (CurrentReport != null)
+        {
+            model.Name = CurrentReport.Name != null ? CurrentReport.Name : "";
+            model.Notes = CurrentReport.Notes != null ? CurrentReport.Notes : "";
+            model.ReportLink = CurrentReport.ReportLink != null ? CurrentReport.ReportLink : "";
+            model.ScanDate = CurrentReport.ScanDate;
+            model.ScanType = CurrentReport.ScanType;
+
+            if (model.Name == "" || model.ScanDate == null) _isValid = false;
+        }
+        else
+        {
+            _isValid = false;
+        }
+        StateHasChanged();
+    }
+
+    private void HandleValidationStateChange(ValidationStateChangedEventArgs e)
+    {
+        if (model.Name == "" || model.Name == null || model.ScanDate == null) {
+        //!(model.ReportLink == "" || model.ReportLink == null || Regex.IsMatch(model.ReportLink, @"^(http|https):\/\/([^\s]*)$"))) {
+            _isValid = false;
+        }
+        else _isValid = true;
+        StateHasChanged();
+    }
+
+    private async Task OnSubmit(EditContext editContext)
+    {
+        _awaitingSave = true;
+        StateHasChanged();
+
+        FortifyScan NewScan = new FortifyScan();
+
+        NewScan.Name = model.Name;
+        NewScan.Notes = model.Notes == null ? "" : model.Notes;
+        NewScan.ReportLink = model.ReportLink == null ? "" : model.ReportLink;
+        NewScan.ScanDate = (DateTime)model.ScanDate;
+        NewScan.ScanType = model.ScanType;
+        _awaitingSave = false;
+
+        submitted = true;
+        await OnSubmitSuccess.InvokeAsync(NewScan);
+
+    }
+
+}

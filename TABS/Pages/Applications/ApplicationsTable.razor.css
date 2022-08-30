@@ -1,0 +1,20 @@
+﻿h4 {
+    font-size: 40px;
+}
+
+::deep .new-application-btn {
+    float: right;
+}
+
+::deep .icon-plus {
+    vertical-align: middle;
+}
+
+::deep .icon-project {
+    font-size: 48px;
+    float: left;
+}
+
+::deep .icon-ellipsis {
+    font-size: 20px;
+}

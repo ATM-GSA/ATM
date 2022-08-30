@@ -1,0 +1,62 @@
+﻿@inject ApplicationService _appService
+@inject IStringLocalizer<App> Localizer
+
+<div>
+    <Text Style="display: inline-block; margin-bottom: 8px;" Type="secondary">
+        @Localizer["DependeesTable.Description"]
+    </Text>
+     <Table DataSource="Dependees" HidePagination Loading="Dependees == null" Size="@TableSize.Small">
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["APMID"].LocalizationKey]" Width="100px">
+            @context.Identification.APMID
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["Name"].LocalizationKey]">
+            @if (context.IsDeleted)
+            { <Text>@context.Identification.Name (@Localizer["Deleted"])</Text> }
+            else
+            {
+                <NavLink href=@($"applications/{context.ShortID}")>
+                    @context.Identification?.Name
+                </NavLink>
+                @(context.IsArchived ? $" ({Localizer["Archived"]})" : "")
+            }
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["Status"].LocalizationKey]">
+            @context.Identification.Status
+        </Column>
+        <Column @bind-Field="@context.Identification" Title="@Localizer[AppIdModuleProperties["WebURL"].LocalizationKey]">
+            @foreach (var url in context.Identification?.WebURL.Trim().Split("\n"))
+                {
+                    <a href="@url" target="_blank" rel="noopener noreferrer">
+                        @url
+                    </a> <br/>
+                }
+        </Column>
+        </Table>
+</div>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    private List<Application> Dependees = new List<Application>();
+    private Dictionary<string, ModuleProperty> AppIdModuleProperties = new ApplicationIdentification().GetProperties();
+
+    protected async override Task OnInitializedAsync()
+    {
+        Dependees = new List<Application>();
+
+        List<int> DependeesIds = (ApplicationObj != null && ApplicationObj.Architecture.Dependees != null) ?
+             ApplicationObj.Architecture.Dependees.Select(dependee => dependee.DependeeID).ToList() : new List<int>();
+
+        foreach (int dependencyId in DependeesIds)
+        {
+            Application dependee = await _appService.GetApplicationByID(dependencyId);
+            Dependees.Add(dependee);
+        }
+        StateHasChanged();
+    }
+
+
+
+}

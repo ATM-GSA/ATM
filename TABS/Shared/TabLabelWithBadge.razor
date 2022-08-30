@@ -1,0 +1,11 @@
+﻿<p>@Label <Badge Count="@Count" /></p>
+
+@code {
+
+    [CascadingParameter(Name = "TabCount")]
+    private int Count { get; set; }
+
+    [Parameter]
+    public string Label { get; set; }
+
+}

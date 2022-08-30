@@ -1,0 +1,117 @@
+﻿@using TABS.Data
+@inject NavigationManager MyNavigationManager
+@inject IJSRuntime JS
+@inject Global Global
+@implements IAsyncDisposable
+
+@*
+    Renders a card for a single Module. Clicking the card will redirect the user to the Module's details page.
+*@
+
+<div @onclick="OnModuleClick">
+    <Card Size="small" Bordered="true" Class="module-card" Hoverable>
+        <TitleTemplate>
+            <div class="card-title-template">
+                <p class="truncate-text card-title-text">@Module["Name"]</p>
+                <p class="card-last-updated-text">@Localizer["LastUpdated"]: @Module["LastUpdated"]</p>
+                @{
+                    bool marqueeTags = (((int)Module["StatusFlags"]) & (((int)Module["StatusFlags"]) - 1)) != 0; 
+                }
+                <div class=@("card-tags " + (marqueeTags ? "marquee" : ""))>
+                    <div> @* This div is for marquee purposes - do not remove *@
+                        @if (((int)Module["StatusFlags"]) == 0)
+                        {
+                            <Tag Class="@("ant-tag ant-tag-" + ModuleStatusTag.getDisplayColor(0))">@Localizer[ModuleStatusTag.getName(0)]</Tag>
+                        }
+                        else
+                        {
+                            foreach (int status in Enum.GetValues(typeof(ModuleStatusFlagEnum)))
+                            {
+                                if ((((int)Module["StatusFlags"]) & status) == status)
+                                {
+                                    <Tag Class="@("ant-tag ant-tag-" + ModuleStatusTag.getDisplayColor(status))">@Localizer[ModuleStatusTag.getName(status)]</Tag>
+                                }
+                            }
+                        }
+
+                        @if ((bool)Module["IsPinned"])
+                        {
+                            <Tag Class="ant-tag ant-tag-purple">@Localizer["Featured"]</Tag>
+                        }
+                    </div>
+                </div>
+                @if (marqueeTags)
+                {
+                    <Icon Style="position: absolute; left: 280px; top: 82px;" Type="caret-right" Theme="fill" />
+                }
+            </div>
+        </TitleTemplate>
+        <Body>
+            <div class="card-body-template">
+                <p class="card-field-preview-title">@Localizer["AppDetails.FieldsPreviewTitle"]</p>
+                <ul class="fields-list">
+                    @* Show only the first 5 fields in the module. *@
+                    @for (int i = 0; i < 5 && i < _numFields; i++)
+                    {
+                        <li>
+                            <p class="truncate-text card-field-text">
+                                @(((List<string>)Module["Fields"])[i])
+                            </p>
+                        </li>
+                    }
+                </ul>
+                @if (_numFields > 5)
+                {
+                    <p class="card-more-fields-text">@Localizer["AppDetails.PlusOtherFields", (_numFields - 5)]</p>
+                }
+            </div>
+        </Body>
+    </Card>
+</div>
+
+
+@code {
+    [Parameter]
+    public Dictionary<string, object> Module { get; set; }
+
+    [Parameter]
+    public Application App { get; set;  }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private int _numFields { get; set; }
+
+    private IJSObjectReference? module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./scripts/scripts.js");
+
+        };
+        if (module != null)
+        {
+            await module.InvokeAsync<string>("setStatusTagMarqueeAnimations");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        _numFields = ((List<string>)Module["Fields"]).Count;
+    }
+
+    private void OnModuleClick()
+    {
+        MyNavigationManager.NavigateTo(Global.GetModuleDetailsURL(App.ShortID, (string)Module["RelativeURL"]));
+    }
+        
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+}

@@ -1,0 +1,36 @@
+﻿.update-content {
+    display: flex;
+}
+
+::deep .update-icon {
+    font-size: x-large;
+}
+
+.update-body {
+    padding: 0px 16px 0px 8px;
+}
+
+.update-title {
+    padding-right: 10px;
+
+}
+
+.update-date {
+    font-size: 12px;
+    color: grey;
+}
+
+::deep .update-unfollow {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+::deep .update-unfollow > span {
+    display: inline;
+}
+
+.update-pb {
+    padding-bottom: 8px;
+}

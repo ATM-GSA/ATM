@@ -1,0 +1,43 @@
+﻿.list-container {
+    width: 100%;
+}
+
+::deep .list {
+    width: 100%;
+    margin: 10px 0px 40px 0px
+}
+
+::deep .list-item {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%;
+}
+
+::deep .status-tag {
+    font-size: 12px;
+    margin-left: 0px;
+}
+
+::deep .list-item-content {
+    padding: 2px 8px 0px 8px;
+    width: 100%;
+}
+
+.list-item-title {
+    margin-bottom: 4px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.list-item-body {
+    display: flex;
+    align-items: center;
+    vertical-align: bottom
+}
+
+.list-item-last-updated {
+    margin: 0px 12px 0px 0px;
+    font-size: 12px;
+    font-weight: 500;
+}

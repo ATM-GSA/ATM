@@ -1,0 +1,288 @@
+﻿@inject NotificationsService NotificationsService
+@inject UserService UserService
+@inject EmailService EmailService
+@inject AuthService _authService
+@inject MessageService message
+@inject NotificationService _notice
+@using Microsoft.Extensions.Configuration
+@using TABS.Shared.Forms
+
+@{
+    RenderFragment _footer = @<Template>
+        <Button OnClick="@HandleCancel">@Localizer["Cancel"]</Button>
+        @if (_currStep != 0)
+        {
+            <Button Type="primary" OnClick="@HandlePrevious">@Localizer["Previous"]</Button>
+        }
+        <Button Type="primary" OnClick="@HandleNext">@GetNextText(_currStep)</Button>
+    </Template>;
+}
+
+<div>
+    <Button Type="primary" class="temp-blue" OnClick="OnCreateNew">@Localizer["Announcements.NewButton"]</Button>
+    <Modal Title="@Localizer["NewAnnouncement"]"
+           Visible="_visible"
+           OnOk="HandleNext"
+           OnCancel="HandleCancel"
+           Width="_width"
+           Footer="_footer">
+        <div>
+            @if (_currStep == 0)
+            {
+                <div class="textarea-container">
+                    <div>@Localizer["Announcement"]</div>
+                    <TextArea DebounceMilliseconds="500" Rows="3" Placeholder="@Localizer["AnnouncementsCreate.MessagePlaceholder"]" ShowCount MaxLength=200 @bind-Value="@_message" />
+                    @if (_isInvalidAnnouncement)
+                    {
+                        <div class="temp-red">@Localizer["AnnouncementsCreate.Required"]</div>
+                    }
+
+                </div>
+                <div class="textarea-container">
+                    <div>@Localizer["AdditionalDetails"]</div>
+                    <TextArea DebounceMilliseconds="500" Rows="3" Placeholder="@Localizer["AnnouncementsCreate.DetailsPlaceholder"]" @bind-Value="@_details" />
+                </div>
+            }
+            else if (_currStep == 1)
+            {
+                <div>@Localizer["SelectRecipients"]</div>
+                <SelectUserForm @ref="selectRecipientForm" PreselectedUserIds="_selectedUserIDs" excludeDefaultBtns="true"></SelectUserForm>
+                @if (_isInvalidUserSelection)
+                {
+                    <div class="temp-red">@Localizer["AnnouncementsCreate.UserRequired"]</div>
+                }
+            }
+            else if (_currStep == 2)
+            {
+                <div class="textarea-container grey-text">@Localizer["Confirm"]</div>
+                <div class="textarea-container">
+                    <div class="bold-text">@Localizer["Announcement"]</div>
+                    <div>@_message</div>
+                </div>
+                <div class="textarea-container">
+                    <div class="bold-text">@Localizer["AdditionalDetails"]</div>
+                    <div>@_details</div>
+                </div>
+                <div class="textarea-container">
+                    <div class="bold-text">@Localizer["AnnouncementsCreate.Who"]</div>
+                    <div>
+                        @if (_isEveryoneSelected)
+                        {
+                            <span>@Localizer["Everyone"]</span>
+                        }
+                        else
+                        {
+                            int i = 0;
+                            for (i = 0; i < 3 && i < _selectedUsers.Count() - 1; i++)
+                            {
+                                <span>
+                                    @_selectedUsers[i].Name,
+                                </span>
+
+                            }
+                            if (_selectedUsers.Count() == 1)
+                            {
+                                <span>
+                                    @_selectedUsers[0].Name
+                                </span>
+                            }
+                            else if (_selectedUsers.Count() <= 4)
+                            {
+                                <span>
+                                    @Localizer["AnnouncementsCreate.AndOneOtherRecipient", _selectedUsers[i].Name]
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    @Localizer["AnnouncementsCreate.AndOtherRecipients", _selectedUsers[i].Name, _selectedUsers.Count() - 1 - i]
+                                </span>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </Modal>
+</div>
+
+@code {
+
+    // Inject the configuration to pull the ENV_URL
+    [Inject]
+    private IConfiguration configuration { get; set; }
+
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    // indicates what step in the creation process we are at
+    // step 0: prompt message and additional details
+    // step 1: select recipients
+    // step 2: confirm
+    // step 3: sent (close modal)
+    private int _currStep = 0;
+
+    private bool _visible = false;
+    private string _width = "500px";
+
+    private string _message = "";
+    private string _details = "";
+    private bool _isInvalidAnnouncement = false;
+    private bool _isInvalidUserSelection = false;
+    private bool _isEveryoneSelected = false;
+
+    private SelectUserForm selectRecipientForm;
+
+    private List<User> _selectedUsers = new List<User>();
+    private List<int> _selectedUserIDs = new List<int>();
+
+    private void OnCreateNew()
+    {
+        _visible = true;
+    }
+
+    private string GetNextText(int step)
+    {
+        if (step == 2)
+        {
+            return Localizer["SendAnnouncement"];
+        }
+        else
+        {
+            return Localizer["Next"];
+        }
+    }
+
+    private void HandlePrevious()
+    {
+        _currStep--;
+        StateHasChanged();
+    }
+
+    private async void HandleNext()
+    {
+        if (_currStep == 0)
+        {
+            // check for empty announcement
+            if (String.IsNullOrEmpty(_message))
+            {
+                _isInvalidAnnouncement = true;
+            }
+            else
+            {
+                _isInvalidAnnouncement = false;
+                _currStep++;
+            }
+        }
+        else if (_currStep == 1)
+        {
+            _selectedUsers = selectRecipientForm.getSelectedUsers();
+            if (_selectedUsers.Count() == 0)
+            {
+                _isInvalidUserSelection = true;
+            } else
+            {
+                _isInvalidUserSelection = false;
+                _selectedUserIDs.Clear();
+                foreach (User user in _selectedUsers)
+                {
+                    _selectedUserIDs.Add(user.UserID);
+                }
+                _isEveryoneSelected = selectRecipientForm.isEveryoneSelected();
+                _currStep++;
+            }
+        }
+        else if (_currStep == 2)
+        {
+            string _adId = await _authService.GetUserSID();
+            User _user = await UserService.GetUserByAdID(_adId);
+
+            Announcement notif = new Announcement()
+                {
+                    timestamp = DateTime.Now,
+                    type = (int)NotificationTypeEnum.Announcement,
+                    userID = _user.UserID,
+                    title = _message,
+                    message = _details
+                };
+
+            // enqueue the notification for all selected users
+            // need to clone list because if the modal is dismissed while looping, it causes exception
+            List<User> selectedUsersClone = _selectedUsers.Select(u => u).ToList();
+            string messageClone = _message;
+            string detailsClone = _details;
+
+            // send out in-app notifications first
+            foreach (User user in selectedUsersClone)
+            {
+                await NotificationsService.EnqueueNotification(user.UserID, notif);
+            }
+
+            string success = Localizer["AnnouncementsCreate.Success"];
+            message.Success(success);
+            ResetValues();
+
+            // send out emails in the background
+            foreach (User user in selectedUsersClone)
+            {
+                try
+                {
+                    await Task.Run(() => EmailService.SendTemplatedEmail(user.Email, "Announcement", new
+                    {
+                        Name = user.Name,
+                        SenderName = _user.Name,
+                        Title = messageClone,
+                        Message = detailsClone,
+                        RecipientCount = selectedUsersClone.Count(),
+                        Env = configuration["ENV_URL"]
+                    }));
+                }
+                catch
+                {
+                    // fail silently ¯\_(ツ)_/¯
+                }
+            }
+
+            // for now open notice for just this user
+            // NOTE: is there a way to style the pop-up?
+            //bool isBodyEmpty = _notif.message == null || _notif.message.Length == 0;
+
+            //await _notice.Open(new NotificationConfig()
+            //{
+            //    Message = string.Format(Localizer["Notifs.AnnouncementTitle"], _notif.title),
+            //    Duration = 0,
+            //    Description = string.Format(Localizer["Notifs.AnnouncementMessage"], _user.Name, _notif.timestamp.ToString("dddd, MMM dd yyyy"), isBodyEmpty ? "[No Body]" : _notif.message),
+            //    Key = $"open-{_notif.id}-{_notif.timestamp}",
+            //});
+
+        }
+        else
+        {
+            _currStep++;
+        }
+
+        StateHasChanged();
+    }
+
+    private void HandleCancel()
+    {
+        ResetValues();
+    }
+
+    private void ResetValues()
+    {
+        _visible = false;
+
+        StateHasChanged();
+
+        _message = "";
+        _details = "";
+        _isInvalidAnnouncement = false;
+        _isInvalidUserSelection = false;
+        _selectedUsers.Clear();
+        _selectedUserIDs.Clear();
+        _isEveryoneSelected = false;
+        _currStep = 0;
+    }
+}

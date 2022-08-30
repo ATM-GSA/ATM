@@ -1,0 +1,273 @@
+﻿@using System.Threading
+@using TABS.Data
+@inject AuthService _authService
+@inject UserService _userService
+@inject UserPreferenceService _userPrefService
+@inject SearchService _searchService
+@inject NavigationManager _navManager
+@inject Global _global
+
+<div style="width: 100%; max-width: 800px;" class="ant-card search-@(IsDarkMode ? "dark" : "light")">
+    <SearchInput Value="@search" ValueChanged="HandleSearchUpdate" 
+                 Debounce="1000" DebounceElapsed="@SearchForTerm"
+                 IsDarkMode=@IsDarkMode/>
+    <div class="search-body">
+        @if (_isLoading)
+        {
+                <Spin />
+        }
+        else
+        {
+            @if (search == null || search == "")
+            {
+                @if (_recentSearches.Count() > 0)
+                {
+                    <div class="recent-searches-container">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <div id="recent-searches-title">
+                                @Localizer["GlobalSearch.RecentSearches"]
+                            </div>
+                            <Button Type=@ButtonType.Link OnClick=@ClearRecentSearches>
+                                @Localizer["ClearAll"]
+                            </Button>
+                        </div>
+                        @foreach (var _recent in _recentSearches)
+                        {
+                            <div class="recent-searches-listitem" @onclick="() => HandleSelectRecentSearch(_recent)">
+                                <Icon Type="search" Theme="outline" 
+                                  Style=@($"margin-right: 8px; color: {(IsDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.25)")}")
+                                  Height="16px" Width="16px" />
+                                <p>@_recent</p>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="width: 100%;">
+                    <div class="num-results-container">
+                        @Localizer["NumResults", _querySearchResults.Count()]
+                    </div>
+                    <div class="ant-card-bordered" style="max-height:@(viewHeight);overflow-y:scroll;width:100%;" tabindex="-1">
+                    
+                        <Virtualize ItemsProvider="@LoadSearchResults" Context="result" ItemSize="75" OverscanCount="@_overScanCount">
+                            @*// Note that the SearchResultItem component will highlight text in the Title & subtitle
+                            // that match the entire MatchTerm (string)*@
+                            <ItemContent>
+                                @*The details param is a list of (string s1, string s2) i.e. tuple of two strings.
+                                    The first string will not be truncated, while the second will be truncated
+                                    around the match term.
+                                *@
+                                <SearchResultItem Title="@result.PageTitle"
+                                                  Subtitle="@result.Breadcrumb"
+                                                  MatchTerm="@search"
+                                                  Details="@result.Details"
+                                                  Link="@result.Link"
+                                                  Tags="@result.Tags"
+                                                  OnClick=@(() => HandleResultSelected(result))
+                                                  IsDarKMode=@IsDarkMode 
+                                                  />
+                            </ItemContent>
+                            <Placeholder>
+                                <SearchResultItem UsePlaceholder=@true IsDarKMode=@IsDarkMode />
+                            </Placeholder>
+                        </Virtualize>
+                        @if(_querySearchResults.Count == 0)
+                        {
+                            <Empty Simple Style="min-height: 400px;">
+                                <DescriptionTemplate>
+                                    <span>@Localizer["NoResultsFound"]</span>
+                                </DescriptionTemplate>
+                            </Empty>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+
+@code {
+    private const int MAX_SEARCH_HISTORY_COUNT = 10;
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public string viewHeight { get; set; } = "500px";
+
+    [Parameter]
+    public bool IsDarkMode { get; set; } 
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    string search;
+    private List<QuerySearchResult> _querySearchResults = new List<QuerySearchResult>();
+    private CancellationTokenSource cancellationTokenSource = new();
+    private List<string> _recentSearches = new List<string>();
+    private User _user;
+    private bool _isAdmin;
+    private Preferences _userPreferences;
+    private bool _isLoading = false;
+    private bool _isRedirecting = false;
+    private int _overScanCount = 10;
+    private int _numLoadedQueryResults = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        string _adId = await _authService.GetUserSID();
+        _user = await _userService.GetUserByAdID(_adId);
+        _isAdmin = _user.Role.PermissionLevel == (int)RoleEnums.Roles.Admin;
+        _userPreferences = _user.GetPreferences();
+        _recentSearches = _userPreferences.recentSearches == null ? new List<string>() : _userPreferences.recentSearches;
+    }
+
+    private async Task HandleResultSelected(SearchResult result)
+    {
+        if (String.IsNullOrEmpty(search) || _isRedirecting) return;
+
+        _isRedirecting = true;
+        StateHasChanged();
+
+        int indexOfSearch = _recentSearches.FindIndex((recent) => recent.ToLower() == search.ToLower()); // checks if search is already in the recents
+        if (indexOfSearch != -1) _recentSearches.RemoveAt(indexOfSearch); // If yes, we remove it from its current index
+        _recentSearches.Insert(0, search.ToLower()); // NOTE: strings in recentSearches should only be in lowercase
+
+        if (_recentSearches.Count > MAX_SEARCH_HISTORY_COUNT)
+        {
+            // truncate the list if it is too long
+            _recentSearches.RemoveRange(MAX_SEARCH_HISTORY_COUNT, _recentSearches.Count - MAX_SEARCH_HISTORY_COUNT);
+        }
+
+        // update user preferences
+        _userPreferences.recentSearches = _recentSearches;
+        _userPrefService.SetPreferences(_userPreferences);
+        await _userPrefService.SaveUserPreferences();
+
+        await OnClose.InvokeAsync();
+        _navManager.NavigateTo(_global.GetBaseURL() + "/" + result.Link);
+    }
+
+    private void HandleSearchUpdate(string newSearch)
+    {
+        _isLoading = true;
+        StateHasChanged();
+
+        if (String.IsNullOrEmpty(newSearch))
+        {
+            _isLoading = false;
+            _querySearchResults.Clear();
+            StateHasChanged();
+        }
+
+        search = newSearch;
+        cancellationTokenSource.Cancel();
+        // We can update search as the user is typing
+        // This way we can possibly do other things with the user input even 
+        // when the user is not "finished typing".
+        // Possibly we could match words in the currently loaded _querySearchResults  list
+
+        // HOWEVER, making a call to reload the data based on the search term should only occur
+        // after the debounce elapsed (to prevent too many service calls),
+        // which is handled in the SearchForTerm function
+    }
+
+    private async void ClearRecentSearches()
+    {
+        _recentSearches.Clear();
+        // update user preferences
+        _userPreferences.recentSearches.Clear();
+        _userPrefService.SetPreferences(_userPreferences);
+        await _userPrefService.SaveUserPreferences();
+        StateHasChanged();
+    }
+
+
+    private async void SearchForTerm(string newSearch)
+    {
+        // note that since we update <search> in the HandleSearchUpdate function above,
+        // when this func is called, search = newSearch
+
+        if (String.IsNullOrEmpty(search))
+        {
+            _querySearchResults.Clear();
+            return;
+        }
+
+        _isLoading = true;
+        StateHasChanged();
+
+        await FetchResults(search);
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async void HandleSelectRecentSearch(string selectedSearch)
+    {
+        search = selectedSearch;
+
+        // Moves the selected search to the top of the recent searches for this user
+        _recentSearches.Remove(selectedSearch);
+        _recentSearches.Insert(0, selectedSearch.ToLower());
+
+        _isLoading = true;
+        StateHasChanged();
+
+        await FetchResults(search);
+
+        // update user preferences
+        _userPreferences.recentSearches = _recentSearches;
+        _userPrefService.SetPreferences(_userPreferences);
+        await _userPrefService.SaveUserPreferences();
+
+        _isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task FetchResults(string search)
+    {
+        // TODO: keep track of a cancellation token that will trigger cancellation when the search input changes
+        cancellationTokenSource = new();
+        try 
+        {
+            _querySearchResults = await _searchService.SearchAll(search, Localizer, cancellationToken: cancellationTokenSource.Token, isAdmin: _isAdmin);
+            _numLoadedQueryResults = 0;
+        }
+        catch
+        {
+            // probably was a task cancellation exception, so we skip    
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<SearchResult>> LoadSearchResults(ItemsProviderRequest request)
+    {
+        // concurrently load all extra data for each result
+        List<Task<bool>> taskList = new();
+        for (int i = request.StartIndex; i < Math.Min(request.StartIndex + request.Count, _querySearchResults.Count); i++)
+        {
+            if (_querySearchResults[i].IsLoaded) continue;
+            taskList.Add(_querySearchResults[i].LoadData(request.CancellationToken));
+            _numLoadedQueryResults++;
+        }
+
+        // wait for all tasks to complete
+        await Task.WhenAll(taskList.ToArray());
+
+        List<SearchResult> newResults = new List<SearchResult>();
+        for (int i = request.StartIndex; i < Math.Min(request.StartIndex + request.Count, _querySearchResults.Count); i++) {
+
+            if (!_querySearchResults[i].IsLoaded) continue; // skip this result
+            
+            newResults.Add(SearchResult.FromQuerySearchResult(_querySearchResults[i], Localizer));
+        }
+
+        int displayedLength = Math.Min(_numLoadedQueryResults + 5, _querySearchResults.Count); 
+        // We add 5 to indicate that there are more results, but without allowing users to scoll too far down
+        return new ItemsProviderResult<SearchResult>(newResults, displayedLength);
+    }
+
+}

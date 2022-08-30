@@ -1,0 +1,43 @@
+﻿h2 {
+    margin-bottom: 14px;
+}
+
+section {
+    margin-bottom: 50px;
+}
+
+.item-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    border-top: 1px solid;
+    border-color: #DBDBDB;
+    padding: 10px 24px;
+}
+
+.item-wrapper-vertical {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-bottom: 20px;
+}
+
+.item-wrapper div:first-child {
+    margin-right: 16px;
+}
+
+#turn-off-email {
+    margin-bottom: 18px;
+}
+
+section .item-wrapper:last-child {
+    border-bottom: 1px solid;
+    border-color: #DBDBDB;
+}
+
+section .item-wrapper.item-wrapper-dark {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+
+

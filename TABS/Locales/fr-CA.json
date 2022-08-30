@@ -1,0 +1,245 @@
+﻿{
+  "locale": "fr-CA",
+  "Pagination": {
+    "items_per_page": "/ page",
+    "jump_to": "Atteindre",
+    "jump_to_confirm": "Confirmer",
+    "page": "",
+    "prev_page": "Page Précédent",
+    "next_page": "Page Suivante",
+    "prev_5": "5 Page Précédent",
+    "next_5": "5 Page Suivante",
+    "prev_3": "3 Page Précédent",
+    "next_3": "3 Page Suivante"
+  },
+  "DatePicker": {
+    "firstDayOfWeek": "Sunday",
+    "lang": {
+      "placeholder": "Sélectionner une date",
+      "yearPlaceholder": "Sélectionnez l'année",
+      "quarterPlaceholder": "Choisissez le trimestre",
+      "monthPlaceholder": "Sélectionnez le mois",
+      "weekPlaceholder": "Sélectionnez la semaine",
+      "rangePlaceholder": [ "Date de début", "Date de fin" ],
+      "rangeYearPlaceholder": [ "Année de début", "Année de fin" ],
+      "rangeMonthPlaceholder": [ "Mois de début", "Mois de fin" ],
+      "rangeWeekPlaceholder": [ "Semaine de début", "Semaine de fin" ],
+      "locale": "fr_CA",
+      "today": "Aujourd'hui",
+      "now": "Maintenant",
+      "backToToday": "Retour à aujourd’hui",
+      "ok": "OK",
+      "clear": "Effacez",
+      "month": "Mois",
+      "year": "Année",
+      "timeSelect": "Sélectionnez Heure",
+      "dateSelect": "Sélectionner la date",
+      "weekSelect": "Sélectionnez la semaine",
+      "monthSelect": "Sélectionnez le mois",
+      "yearSelect": "Sélectionnez l'année",
+      "decadeSelect": "Sélectionnez décennie",
+      "yearFormat": "yyyy",
+      "dateFormat": "yyyy-MM-dd",
+      "dayFormat": "d",
+      "dateTimeFormat": "yyyy-MM-dd HH:mm:ss",
+      "monthBeforeYear": false,
+      "previousMonth": "Dernier mois (PageUp)",
+      "nextMonth": "Prochain mois (PageDown)",
+      "previousYear": "Dernière année (Ctrl + gauche)",
+      "nextYear": "Prochaine année (Ctrl + droit)",
+      "previousDecade": "Dernière décennie",
+      "nextDecade": "Prochaine décennie",
+      "previousCentury": "Siècle précédent",
+      "nextCentury": "Prochain siècle",
+      "startDate": "Date de début",
+      "startWeek": "Semaine de début",
+      "startMonth": "Mois de début",
+      "startYear": "Année de début",
+      "startQuarter": "Trimestre de debut",
+      "endDate": "Date de fin",
+      "endWeek": "Semaine de fin",
+      "endMonth": "Mois de fin",
+      "endYear": "Année de fin",
+      "endQuarter": "Trimestre de fin",
+      "quarterSelect": "Choisissez le trimestre",
+      "week": "Semaine",
+      "monthFormat": "MMM",
+      "shortWeekDays": [ "Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam" ]
+    },
+    "timePickerLocale": {
+      "placeholder": "Sélectionnez heure",
+      "rangePlaceholder": [ "Heure de début", "Heure de fin" ]
+    }
+  },
+  "TimePicker": {
+    "placeholder": "Sélectionnez heure",
+    "rangePlaceholder": [ "Heure de début", "Heure de fin" ]
+  },
+  "Calendar": {
+    "lang": {
+      "placeholder": "Sélectionner une date",
+      "yearPlaceholder": "Sélectionnez l'année",
+      "quarterPlaceholder": "Choisissez le trimestre",
+      "monthPlaceholder": "Sélectionnez le mois",
+      "weekPlaceholder": "Sélectionnez la semaine",
+      "rangePlaceholder": [ "Date de début", "Date de fin" ],
+      "rangeYearPlaceholder": [ "Année de début ", "Année de fin" ],
+      "rangeMonthPlaceholder": [ "Mois de début", "Mois de fin" ],
+      "rangeWeekPlaceholder": [ "Semaine de début", "Semaine de fin" ],
+      "locale": "fr_CA",
+      "today": "Aujourd'hui",
+      "now": "Maintenant",
+      "backToToday": "Retour à aujourd’hui",
+      "ok": "OK",
+      "clear": "Effacez",
+      "month": "Mois",
+      "year": "Année",
+      "timeSelect": "Sélectionnez heure",
+      "dateSelect": "Sélectionner la date",
+      "weekSelect": "Sélectionnez la semaine",
+      "monthSelect": "Sélectionnez le mois",
+      "yearSelect": "Sélectionnez l'année",
+      "decadeSelect": "Sélectionnez décennie",
+      "yearFormat": "yyyy",
+      "dateFormat": "yyyy-MM-dd",
+      "dayFormat": "d",
+      "dateTimeFormat": "yyyy-MM-dd HH:mm:ss",
+      "monthBeforeYear": false,
+      "previousMonth": "Dernier mois (PageUp)",
+      "nextMonth": "Prochain mois (PageDown)",
+      "previousYear": "Dernière année (Ctrl + gauche)",
+      "nextYear": "Prochaine année (Ctrl + droit)",
+      "previousDecade": "Dernière décennie",
+      "nextDecade": "Prochaine décennie",
+      "previousCentury": "Siècle précédent",
+      "nextCentury": "Prochain siècle"
+    },
+    "timePickerLocale": {
+      "placeholder": "Sélectionnez heure",
+      "rangePlaceholder": [ "Heure de début", "Heure de fin" ]
+    }
+  },
+  "global": { "placeholder": "Veuillez sélectionner" },
+  "Table": {
+    "filterTitle": "Menu de filtre",
+    "filterConfirm": "OK",
+    "filterReset": "Réinitialiser",
+    "selectAll": "Sélectionnez la page courante",
+    "selectInvert": "Inversez la page courante",
+    "selectionAll": "Sélectionnez toutes les données",
+    "sortTitle": "Trier",
+    "expand": "Élargir la rangée",
+    "collapse": "Réduisez la ligne",
+    "triggerDesc": "[fr] Click sort by descend",
+    "triggerAsc": "[fr] Click sort by ascend",
+    "cancelSort": "[fr] Click to cancel sort",
+    "filterOptions": {
+      "true": "Vrai",
+      "false": "Faux",
+      "and": "Et",
+      "or": "Ou",
+      "equals": "Égal",
+      "notEquals": "Pas égal",
+      "contains": "Contient",
+      "notContains": "Pas contient",
+      "startsWith": "Commencer avec",
+      "endsWith": "Fin avec",
+      "greaterThan": "Plus de",
+      "lessThan": "Moins de",
+      "greaterThanOrEquals": "Supérieure ou égale",
+      "lessThanOrEquals": "Inférieure ou égale",
+      "isNull": "Est NULL",
+      "isNotNull": "N'est pas NULL",
+      "theSameDateWith": "La même date avec"
+    }
+  },
+  "Modal": {
+    "okText": "OK",
+    "cancelText": "Annuler"
+  },
+  "Confirm": {
+    "okText": "OK",
+    "cancelText": "Annuler",
+    "yesText": "Oui",
+    "noText": "Non",
+    "retryText": "Réessayer",
+    "abortText": "Abandonner",
+    "ignoreText": "Ignorer"
+  },
+  "Popconfirm": {
+    "okText": "OK",
+    "cancelText": "Annuler"
+  },
+  "Transfer": {
+    "titles": [ "", "" ],
+    "searchPlaceholder": "Recherche ici",
+    "itemUnit": "article",
+    "itemsUnit": "articles"
+  },
+  "Upload": {
+    "uploading": "Téléchargement en cours...",
+    "removeFile": "Supprimer le fichier",
+    "uploadError": "Erreur avec le téléchargement",
+    "previewFile": "Fichier de prévisualisation",
+    "downloadFile": "Télécharger le fichier"
+  },
+  "Empty": { "description": "Pas de données" },
+  "Icon": { "icon": "icône" },
+  "Text": {
+    "edit": "Modifier",
+    "copy": "Copie",
+    "copied": "Copié",
+    "expand": "Élargir"
+  },
+  "PageHeader": { "back": "Retour" },
+  "Form": {
+    "defaultValidateMessages": {
+      "default": "Erreur de validation sur le terrain: ${label}",
+      "required": "Veuillez entrer ${label}",
+      "enum": "${label} doit être du type [${enum}]",
+      "whitespace": "${label} ne peut pas être un caractère vide",
+      "date": {
+        "format": "Format de date est invalide: ${label}",
+        "parse": "${label} ne peut pas être converti en date",
+        "invalid": "${label} est invalide"
+      },
+      "types": {
+        "string": "${label} n'est pas un(e) ${type} valide",
+        "method": "${label} n'est pas un(e) ${type} valide",
+        "array": "${label} n'est pas un(e) ${type} valide",
+        "object": "${label} n'est pas un(e) ${type} valide",
+        "number": "${label} n'est pas un(e) ${type} valide",
+        "date": "${label} n'est pas un(e) ${type} valide",
+        "boolean": "${label} n'est pas un(e) ${type} valide",
+        "integer": "${label} n'est pas un(e) ${type} valide",
+        "float": "${label} n'est pas un(e) ${type} valide",
+        "regexp": "${label} n'est pas un(e) ${type} valide",
+        "email": "${label} n'est pas un(e) ${type} valide",
+        "url": "${label} n'est pas un(e) ${type} valide",
+        "hex": "${label} n'est pas un(e) ${type} valide"
+      },
+      "string": {
+        "len": "${label} doit avoir ${len} caractères",
+        "min": "${label} doit avoir au moins ${min} caractères",
+        "max": "${label} doit avoir au plus ${max} caractères",
+        "range": "${label} doit avoir entre ${min}-${max} caractères"
+      },
+      "number": {
+        "len": "${label} doit être égal à ${len}",
+        "min": "La valeur de ${label} doit être au moins ${min}",
+        "max": "La valeur de ${label} doit être au plus ${max}",
+        "range": "La valeur de ${label} doit être entre ${min}-${max}"
+      },
+      "array": {
+        "len": "Doit être ${len} ${label}",
+        "min": "Au moins ${min} ${label}",
+        "max": "Au plus ${max} ${label}",
+        "range": "La quantité de ${label} doit être entre ${min}-${max}"
+      },
+      "pattern": { "mismatch": "${label} ne corrrespond pas au modèle ${pattern}" }
+    }
+  },
+  "Image": {
+    "preview": "Aperçu"
+  }
+}

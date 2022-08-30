@@ -1,0 +1,94 @@
+﻿@inject AuthService _authService
+@implements IModuleTable
+@using System.ComponentModel.DataAnnotations;
+
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" Title="Report"/>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    private List<DataDisplay> fieldDisplay;
+
+    private DataTable table;
+
+    protected override void OnInitialized()
+    {
+        InitModuleDisplayModuleDisplay();
+    }
+
+    private void InitModuleDisplayModuleDisplay()
+    {
+
+        Report AppReport = ApplicationObj.Report != null ? ApplicationObj.Report: new Report();
+        Dictionary<string, ModuleProperty> ModuleProperties = AppReport.GetProperties();
+
+        fieldDisplay = new List<DataDisplay>()
+        {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Performance", Type = FieldDisplay.InputType.ShortText },
+                Value = AppReport.Performance == null ? new ValueDisplay("") : new ValueDisplay(AppReport.Performance)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Accessibility", Type = FieldDisplay.InputType.ShortText },
+                Value = AppReport.Accessibility == null ? new ValueDisplay("") : new ValueDisplay(AppReport.Accessibility)
+            },
+        };
+
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            if (d.Field.Type == FieldDisplay.InputType.ShortText || d.Field.Type == FieldDisplay.InputType.LongText)
+            {
+                d.Field.MaxLength = AppReport.GetAttributeFrom<StringLengthAttribute>(d.Field.Name).MaximumLength;   
+            }
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+    public void reset()
+    {
+        table.reset();
+    }
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+
+        if (ApplicationObj.Report == null)
+        {
+            ApplicationObj.Report = new Report();
+            ApplicationObj.Report.Application = ApplicationObj;
+            isModified = true;
+        }
+
+        foreach (DataDisplay dataDisplay in fieldDisplay)
+        {
+            DataDisplayConverter.PopulateObjWithDataDisplayValue(ApplicationObj.Report, typeof(Report), dataDisplay);
+        }
+
+        if (isModified)
+        {
+            ApplicationObj.Report.LastUpdate = DateTime.Now;
+            ApplicationObj.Report.LastModifiedBy = await _authService.GetUserSID();
+        }
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        return isModified;
+    }
+
+    public bool hasErrors()
+    {
+        return table.checkErrors();
+    }
+
+}

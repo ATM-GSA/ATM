@@ -1,0 +1,250 @@
+﻿@using Microsoft.Extensions.Logging
+@using System.ComponentModel.DataAnnotations
+@inject ILogger<Error> Logger
+@inject IStringLocalizer<App> Localizer
+@inject NavigationManager NavManager
+
+@inject CrudService _crudService
+@inject UserService _userService
+@inject AuthService _authService
+@inject UserPreferenceService _userPreferenceService
+
+@if (!_showErrorScreen && !ShowAsComponent)
+{
+    <CascadingValue Value="this">
+        @ChildContent
+    </CascadingValue>
+}
+else
+{
+    <TABS.Shared.Header IsDarkMode=@_isDarkMode />
+    <div class="error-screen @(_isDarkMode ? "dark-mode" : "light-mode")">
+        <h1>
+            @Localizer["Error.Title"]
+        </h1>
+        <p class="error-description">
+            @Localizer["Error.Description"]
+        </p>
+        <p class="error-description" style="margin: 20px; max-width: 600px;">
+                👋 Please provide us with more details by filing out
+                this short <a href="" target="_blank" rel="noopener noreferrer">user feedback or bug form</a>
+                or contacting Matthew Szczerba at <a href="@("mailto:?subject=Report Bug in ATM/GSA")"></a>.
+        </p>
+        <Result Status="500"/>
+        @if (ShowAsComponent)
+        {
+           <Button Type="@ButtonType.Primary" Size="@AntDesign.ButtonSize.Large" Style="border-radius: 42px; margin-right: 12px;"
+                OnClick=@ReloadPage>
+                    @Localizer["RefreshPage"]
+            </Button>
+        }
+        else
+        {
+        <NavLink href="@_returnLink">
+                <Button Type="@ButtonType.Primary" Size="@AntDesign.ButtonSize.Large" Style="border-radius: 42px;"
+                       OnClick=@LeaveErrorScreen>
+                    @_returnLabel
+                </Button>
+            </NavLink>
+        }
+
+        @*<p style="margin: 20px;">
+                👋 @Localizer["Error.ContactUs"] <a href="@("mailto:?subject=Report Bug in ATM/GSA")"></a>
+                or fill out this short <a href="" target="_blank" rel="noopener noreferrer">user feedback or bug form</a>.
+        </p>*@
+
+       @* <div class="error-feedback-form">
+            <h3>👋 @Localizer["Error.FeedbackForm.Title"] </h3>         
+            @if(_submitted)
+            {
+                <Alert Type="@AlertType.Success"
+                        Message="@Localizer["Error.FeedbackForm.SubmitSuccessMsg"]"
+                        ShowIcon="true"
+                        Style="margin-bottom: 16px"/>
+            }
+            <Spin Spinning=@_submittingForm Tip="@Localizer["Submitting"]">
+                <Form Layout=@FormLayout.Vertical
+                      Model=@_errFeedback
+                       OnFinish=@SubmitForm>
+                    <FormItem>
+                        <LabelTemplate>
+                            <p>@Localizer["Error.FeedbackForm.Description"]</p>
+                        </LabelTemplate>
+                        <ChildContent>
+                            <TextArea @bind-Value="@context.Details" DebounceMilliseconds="500" Placeholder="@Localizer["Error.FeedbackForm.AddDetails"]" />
+                        </ChildContent>
+                    </FormItem>
+                    <FormItem>
+                        <Button HtmlType="submit">
+                            @Localizer["Submit"]
+                        </Button>
+                    </FormItem>
+                </Form>
+            </Spin>
+        </div>*@
+
+        @*Users will not see anything beneath this, so we don't need translations for this.*@
+ @*       @if (_testMode)
+        {
+            <div class="error-feedback-form" style="width: 700px;">
+                <p>
+                    ⚠ Users should not see this in the final producation build. Translation not needed. ⚠
+                </p>
+                <Button Type="@ButtonType.Default" Size="@AntDesign.ButtonSize.Large" Style="border-radius: 42px; margin-bottom: 12px; margin-top: 12px;"
+                    OnClick=@(() => _showException = !_showException )>
+                        Toggle Detailed Exception
+                </Button>
+
+                @if(_showException)
+                {
+                    @if (ShowAsComponent) {
+                        <p> @CurrentException </p>
+                    } else {
+                        <p>@_currException?.ToString()</p>
+                    }
+                }
+            </div>
+        }*@
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool ShowAsComponent { get; set; } = false;
+
+    [Parameter]
+    public string CurrentException { get; set; } // This is only used as a param when Error is used a component, i.e. when ShowAsComponent is true
+
+    public string _returnLabel { get; set; } = "";
+    public string _returnLink { get; set; } = "";
+
+    public class ErrorFeedback
+    {
+        [Required]
+        public string Details { get; set; }
+    }
+
+    private ErrorFeedback _errFeedback = new ErrorFeedback();
+    private Exception _currException;
+
+
+    private bool _showErrorScreen = false;
+
+    private bool _submittingForm = false;
+    private bool _submitted = false;
+    private bool _isDarkMode = false;
+
+    private bool _testMode = true; // Change to false when deploying to production
+    private bool _showException = false;  
+
+    protected override async Task OnInitializedAsync()
+    {
+        string AdID = await _authService.GetUserSID();
+
+        User _currUser = await _userService.GetUserByAdID(AdID);
+        if (_currUser != null)
+        {
+            _userPreferenceService.Initialize(AdID);
+            _isDarkMode = _userPreferenceService.GetPreferences().theme == "Dark";
+        }
+        NavManager.LocationChanged += LeaveErrorScreen;
+    }
+
+    /// <summary>
+    /// Process error without displaying the error screen.
+    /// </summary>
+    /// <param name="ex"></param>
+    public void LogError(Exception ex)
+    {
+        Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}", 
+            ex.GetType(), ex.Message);
+    }
+
+    /// <summary>
+    /// Process error and display default error screen (with link back to dashboard).
+    /// </summary>
+    /// <param name="ex"></param>
+    public void ProcessError(Exception ex)
+    {
+        _currException = ex;
+        _returnLabel = Localizer["Error.DefaultReturn"];
+        _returnLink = "";
+        _showErrorScreen = true;
+        Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}", 
+            ex.GetType(), ex.Message);
+
+        // TO-DO: Save Error to DB
+        // Keep ID of the Error so that we can add on a user message to it later
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Process error and display error screen with the custom button label <returnLabel>
+    /// that links to <returnLink>, which must be a relative URL with no leading /
+    /// </summary>
+    /// <param name="ex"></param>
+    /// <param name="returnLabel"></param>
+    /// <param name="returnLink"></param>
+    public void ProcessErrorWithCustomReturn(Exception ex, string returnLabel, string returnLink)
+    {
+        _currException = ex;
+        _returnLabel = returnLabel;
+        _returnLink = returnLink;
+        _showErrorScreen = true;
+        Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}", 
+            ex.GetType(), ex.Message);
+
+        // TO-DO: Save Error to DB
+        // Keep ID of the Error so that we can add on a user message to it later
+        StateHasChanged();
+    }
+
+    private void LeaveErrorScreen()
+    {
+        // resetting everything to defaults
+        _showErrorScreen = false;
+        _submitted = false;
+        _submittingForm = false;
+        _errFeedback.Details = "";
+        _returnLabel = Localizer["Error.DefaultReturn"];
+        _returnLink = "";
+    }
+
+    private void LeaveErrorScreen(object sender, LocationChangedEventArgs e)
+    {
+        // resetting everything to defaults
+        _showErrorScreen = false;
+        _submitted = false;
+        _submittingForm = false;
+        _errFeedback.Details = "";
+        _returnLabel = Localizer["Error.DefaultReturn"];
+        _returnLink = "";
+        StateHasChanged();
+    }
+
+    private async Task SubmitForm(EditContext context)
+    {
+        _submittingForm = true;
+        StateHasChanged();
+        // TODO Submit user message to error with ID
+        await Task.Delay(300);
+        Console.WriteLine(_errFeedback.Details);
+        ResetInput();
+        _submittingForm = false;
+        _submitted = true;
+        StateHasChanged();
+    }
+
+    private void ResetInput()
+    {
+        _errFeedback.Details = "";
+    }
+
+    private void ReloadPage()
+    {
+        NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
+    }
+}

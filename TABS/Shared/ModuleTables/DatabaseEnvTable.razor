@@ -1,0 +1,117 @@
+﻿@using TABS.Shared.NestedTables 
+@inject AuthService _authService
+@inject CrudService _crudService
+@implements IModuleTable
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" NestedRenderItems="nestedItems" Title="DatabaseEnvironment" DefaultExpandAllNested="@true"/>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    private DatabaseTable _dbsTable;
+    private List<Database> DatabasesToHardDelete = new List<Database>();
+    private bool isNestedModified = false;
+
+    private List<Database> databases = new List<Database>();
+    private List<DataDisplay> fieldDisplay;
+    private List<RenderFragment> nestedItems = new List<RenderFragment>();
+    private Dictionary<string, ModuleProperty> ModuleProperties = new DatabaseEnvironment().GetProperties();
+
+    private DataTable table;
+
+    protected override void OnInitialized()
+    {
+        initModuleDisplay();
+        nestedItems.Add(@<DatabaseTable @ref="_dbsTable" Databases="@databases"/>);
+    }
+
+    private void initModuleDisplay()
+    {
+
+        fieldDisplay = new List<DataDisplay>()
+        {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Databases", Type = FieldDisplay.InputType.NestedTable },
+                Value = new ValueDisplay("0")
+            }
+        };
+
+        databases = (ApplicationObj != null && ApplicationObj.DatabaseEnvironment != null) ?
+            ApplicationObj.DatabaseEnvironment.Databases.Select(db => db).ToList() : new List<Database>();
+
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+        bool isDbsModified = _dbsTable != null && _dbsTable.HasChanges(); // _dbsTable may not null if the nested table was not expanded
+
+        if (!isModified && !isDbsModified && ApplicationObj.DatabaseEnvironment != null) return false;
+
+        if (ApplicationObj.DatabaseEnvironment == null)
+        {
+            ApplicationObj.DatabaseEnvironment = new DatabaseEnvironment();
+            ApplicationObj.DatabaseEnvironment.Application = ApplicationObj;
+        }
+
+        if (_dbsTable != null)
+        { 
+            databases = _dbsTable.GetUpdatedDatabases();
+            DatabasesToHardDelete = _dbsTable.GetDeletedDatabases();
+        }
+
+        ApplicationObj.DatabaseEnvironment.Databases = databases.Select(db =>
+        {
+            if (db.DatabaseEnvironment == null)
+            {
+                db.DatabaseEnvironment = ApplicationObj.DatabaseEnvironment;
+                db.DatabaseID = default;
+                isNestedModified = true;
+            }
+            return db;
+        }).ToList();
+
+        // Delete existing servers from DB 
+        foreach (Database db in DatabasesToHardDelete)
+        {
+            db.DatabaseEnvironment = null; // need to null this to chill out the entity tracker
+            bool deleted = await _crudService.DeleteAsync(db);
+            if (!deleted) Console.WriteLine("Failed to delete db.");
+        }
+
+        ApplicationObj.DatabaseEnvironment.LastUpdate = DateTime.Now;
+        ApplicationObj.DatabaseEnvironment.LastModifiedBy = await _authService.GetUserSID();
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        DatabasesToHardDelete = new List<Database>();
+        databases = ApplicationObj.DatabaseEnvironment.Databases;
+
+        return true;
+    }
+
+    public bool hasErrors()
+    {
+        return false;
+    }
+
+    public void reset()
+    {
+        _dbsTable?.ResetToDefaults();
+        table?.reset();
+        StateHasChanged();
+    }
+
+}

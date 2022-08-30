@@ -1,0 +1,34 @@
+@using TABS.Shared.Layout
+@inject IStringLocalizer<App> Localizer
+
+<CascadingAuthenticationState>
+    <CascadingBlazoredModal>
+        <Error>
+            <Router AppAssembly="@typeof(Program).Assembly" PreferExactMatches="@true">
+                <Found Context="routeData">
+                    <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(TabsLayout)" />
+                </Found>
+                <NotFound>
+                    <LayoutView Layout="@typeof(TabsLayout)">
+                        <Result Status="404"
+                                Title="@Localizer["404Page.Title"]"
+                                SubTitle="@Localizer["404Page.Subtitle"]" />
+                    </LayoutView>
+                </NotFound>
+            </Router>
+        </Error>
+    </CascadingBlazoredModal>
+</CascadingAuthenticationState>
+
+<AntContainer />
+
+@code {
+    [Parameter]
+    public string Cookie { get; set; }
+    protected override Task OnInitializedAsync()
+    {
+        CookieProviderService.Cookie = Cookie;
+
+        return base.OnInitializedAsync();
+    }
+}

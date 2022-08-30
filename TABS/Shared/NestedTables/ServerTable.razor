@@ -1,0 +1,226 @@
+﻿@using TABS.Shared.Forms
+
+@inject AntDesign.ModalService _modalService
+@inject IStringLocalizer<App> Localizer
+
+<Table DataSource="Rows" Loading="Rows == null" HidePagination Size="@TableSize.Small">
+    <Column @bind-Field="@context.Server" Title="@Localizer[ModuleProperties["Name"].LocalizationKey]">
+        @context.Server.Name
+    </Column>
+    <Column @bind-Field="@context.Server" Title="@Localizer[ModuleProperties["URL"].LocalizationKey]">
+        @if (context.Server.URL != null && (context.Server.URL.StartsWith("https://") || context.Server.URL.StartsWith("http://")))
+        {
+            <a href="@context.Server.URL" target="_blank" rel="noopener noreferrer">@context.Server.URL</a>
+        } else
+        {
+            @context.Server.URL
+        }
+    </Column>
+    <Column @bind-Field="@context.Server" Title="@Localizer[ModuleProperties["Type"].LocalizationKey]">
+        <Tag PresetColor="@tagColorMap[context.Server.Type]">
+            @Localizer[context.Server.Type.ToString()]
+        </Tag>
+    </Column>
+    <Column @bind-Field="@context.Server" Title="@Localizer[ModuleProperties["Version"].LocalizationKey]">
+        @context.Server.Version
+    </Column>
+    @if (!_isDisabled)
+    {
+        <ActionColumn>
+            <Button Type="@ButtonType.Dashed" Size="@ButtonSize.Small" OnClick="() => OpenEditModal(context.Id)" 
+                Disabled=@_modalOpen>
+                @Localizer["Edit"]
+            </Button>
+            <Popconfirm Title="@Localizer["DeleteConfirmationGeneric"]"
+                        OnConfirm="() => DeleteRow(context)"
+                        OkText="@Localizer["YesDelete"]"
+                        CancelText="@Localizer["Cancel"]"
+                        ArrowPointAtCenter="true">
+                <Button Type="@ButtonType.Link" Danger="@true" Size="@ButtonSize.Small">@Localizer["Delete"]</Button>
+            </Popconfirm>
+        </ActionColumn>
+    }
+</Table>
+@if (!_isDisabled)
+{
+    <Button Type="@ButtonType.Link"
+            Style="margin-bottom:16px"
+            Size="@ButtonSize.Small"
+            OnClick="() => OpenAddNewModal()"
+            Disabled=@_modalOpen>
+        + @Localizer["ModuleTable.AddNewRow"]
+    </Button>
+}
+
+@code {
+
+    [Parameter]
+    public List<Server> Servers { get; set; }
+
+    [CascadingParameter(Name = "IsDisabled")]
+    private bool _isDisabled { get; set; }
+
+    private bool _wasDisabled = true;
+
+    private Dictionary<string, ModuleProperty> ModuleProperties = new Server().GetProperties();
+    Dictionary<Server.ServerType, PresetColor> tagColorMap = new Dictionary<Server.ServerType, PresetColor>()
+{
+        { Server.ServerType.Development, PresetColor.Cyan },
+        { Server.ServerType.QA, PresetColor.Green },
+        { Server.ServerType.QC, PresetColor.GeekBlue },
+        { Server.ServerType.Test, PresetColor.Red },
+        { Server.ServerType.Production, PresetColor.Gold }
+    };
+
+    class Row
+    {
+        public int Id { get; set; }
+        public Server Server { get; set; }
+    }
+
+    private int _nextId = 0;
+    private List<Row> Rows;
+    private List<Row> _deletedInitialRows = new List<Row>();
+
+    private bool _serversWereEdited = false;
+
+    private ModalRef _modalRef;
+    private bool _modalOpen = false;
+
+    protected override void OnInitialized()
+    {
+        ResetToDefaults();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (_wasDisabled != _isDisabled)
+        {
+            ResetToDefaults();
+            _wasDisabled = _isDisabled;
+        }
+    }
+
+    private void DeleteRow(Row rowToDelete)
+    {
+        Rows = Rows.Where(row => row.Id != rowToDelete.Id).ToList();
+        if (rowToDelete.Server.ServerID != default) _deletedInitialRows.Add(rowToDelete);
+    }
+
+    private async Task AddRow(Server newServer)
+    {
+        Row newRow = new Row() { Id = _nextId, Server = newServer };
+        _nextId++;
+
+        Rows.Add(newRow);
+        await CloseModal();
+    }
+
+    private async Task UpdateRow(int rowId, Server updatedServer)
+    {
+        Server CurrentServer = Rows.First(row => row.Id == rowId).Server;
+        CurrentServer.Name = updatedServer.Name;
+        CurrentServer.Version = updatedServer.Version;
+        CurrentServer.URL = updatedServer.URL;
+        CurrentServer.Type = updatedServer.Type;
+
+        if (CurrentServer.ServerID != default) _serversWereEdited = true;
+        await CloseModal();
+
+    }
+
+    private async Task OpenAddNewModal()
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["ServerTable.AddNew"].ToString(),
+            Footer = null,
+            DestroyOnClose = true,
+            MaskClosable = false,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =@<AddServerForm OnSubmitSuccess="AddRow" OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null)
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+    private async Task OpenEditModal(int rowId)
+    {
+        _modalOpen = true;
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = Localizer["ServerTable.Edit"].ToString(),
+            Footer = null,
+            DestroyOnClose = true,
+            MaskClosable = false,
+            OnCancel = async (e) => { await CloseModal(); } , 
+            Content =
+    @<AddServerForm CurrentServer="@(Rows.First(row => row.Id == rowId).Server)" OnSubmitSuccess="(newServer) => UpdateRow(rowId, newServer)" OnCancel="CloseModal" />
+    };
+
+        if (_modalRef == null)
+        {
+            _modalRef = await _modalService.CreateModalAsync(modalConfig);
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        if (_modalRef != null)
+        {
+            await _modalRef.CloseAsync();
+            _modalRef = null;
+        }
+        _modalOpen = false;
+        StateHasChanged();
+    }
+
+    // ====== PUBLIC FUNCTIONS =====
+    public bool HasChanges()
+    {
+        bool hasNewlyAdded = Rows.Where(row => row.Server.ServerID == default).Count() > 0;
+        bool existingDeleted = _deletedInitialRows.Count > 0;
+        return hasNewlyAdded || existingDeleted || _serversWereEdited;
+    }
+
+    public List<Server> GetDeletedServers()
+    {
+        return _deletedInitialRows.Select(row => row.Server).ToList();
+    }
+
+    public List<Server> GetUpdatedServers()
+    {
+        return Rows.Select(row => row.Server).ToList();
+    }
+
+    public void ResetToDefaults()
+    {
+        _nextId = 0;
+        _serversWereEdited = false;
+        _deletedInitialRows = new List<Row>();
+        if (Servers == null) Servers = new List<Server>();
+        Rows = Servers.Select(server =>
+        {
+            _nextId++;
+            return new Row()
+            {
+                Id = _nextId - 1,
+                Server = new Server()
+                {
+                    ServerID = server.ServerID,
+                    ServerEnvironment = server.ServerEnvironment,
+                    Name = server.Name,
+                    URL = server.URL,
+                    Type = server.Type,
+                    Version = server.Version
+                }
+            };
+        }).ToList();
+    }
+}

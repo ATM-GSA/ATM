@@ -1,0 +1,237 @@
+﻿@using TABS.Shared.Forms
+@using Newtonsoft.Json
+@inject CrudService _crudService
+@inject AuthService _authService   
+@inject AntDesign.ModalService _modalService
+@inject IStringLocalizer<App> Localizer 
+@implements IModuleTable
+
+<div>
+    <Table DataSource="@contacts"
+           HidePagination
+           Size="@TableSize.Small"
+           Loading="contacts.Count() < 5"
+           Title="@(_showTitle ? @Localizer["Contacts"] : null)">
+        <Column @bind-Field="@context.ContactRole" Title="Role" Width="160px">
+            <Text Style="font-weight: 500;">@Localizer[ModuleProperties[context.ContactRole].LocalizationKey]</Text>
+        </Column>
+        <Column TData="string" Title="@Localizer["Contact"]" Width="240px" ColSpan="1">
+            @if (context.ContactInfo.name != "")
+            {
+                @if (context.ContactInfo.itLevel != 0)
+                {
+                    <span>@context.ContactInfo.name (IT@(context.ContactInfo.itLevel))</span>
+                }
+                else
+                {
+                    <span>@context.ContactInfo.name</span>
+                }
+            }
+            else
+            {
+                <span style="color: grey;">@Localizer["Empty"]</span>
+            }
+        </Column>
+        <Column TData="string" Title="@Localizer["Email"]" ColSpan="1">
+            @if (context.ContactInfo.name != "")
+            {
+                <a href="mailto: @context.ContactInfo.email">@context.ContactInfo.email</a>
+            }
+            else
+            {
+                <span style="color: grey;">-</span>
+            }
+        </Column>
+        <Column TData="string" 
+                Hidden="@(IsDisabled || !IsEditing)">
+            <Button Type="@ButtonType.Default"
+                    Size="@ButtonSize.Small"
+                    OnClick="() => OpenModal(context)">
+                @(Localizer["SetNewContact"])
+            </Button>
+            @if (context.ContactInfo.name != "")
+            {<Button Type="@ButtonType.Link"
+                        Size="@ButtonSize.Small"
+                        OnClick="() => removeContactFrom(context.ContactRole)"
+                        Danger="@true">
+                    @Localizer["RemoveContact"]
+                </Button>
+            }
+        </Column>
+    </Table>
+</div>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    [CascadingParameter(Name ="IsReadOnly")]
+    private bool IsDisabled { get; set; }
+
+    [CascadingParameter(Name = "IsInEditMode")]
+    private bool IsEditing { get; set; }
+
+    [CascadingParameter(Name = "ShowTitle")]
+    private bool _showTitle { get; set; }
+
+    private ModalRef _modalRef;
+    Dictionary<string, ModuleProperty> ModuleProperties;
+
+    private class DisplayContact
+    {
+        public string ContactRole { get; set; }
+        public ContactInfo ContactInfo { get; set; }
+    }
+
+    private List<DisplayContact> contacts = new List<DisplayContact>();
+
+    private void InitContactDisplay()
+    {
+        Contact AppContact = ApplicationObj.Contact ?? new();
+        ApplicationObj.Contact = AppContact;
+        AppContact.Application = ApplicationObj;
+        ModuleProperties = AppContact.GetProperties();
+
+        AddDisplayContact("Manager", AppContact.GetManager());
+        AddDisplayContact("TeamLead", AppContact.GetTeamLead());
+        AddDisplayContact("TechLead", AppContact.GetTechLead());
+        AddDisplayContact("ClientManager", AppContact.GetClientManager());
+        AddDisplayContact("ClientLead", AppContact.GetClientLead());
+    }
+
+    protected override void OnInitialized()
+    {
+        InitContactDisplay();
+        StateHasChanged();
+        return;
+    }
+
+    private void AddDisplayContact(string roleTitle, ContactInfo contactInfo)
+    {
+        contacts.Add(new DisplayContact() {
+            ContactRole = roleTitle,
+            ContactInfo = contactInfo
+        });
+    }
+
+    private async Task OpenModal(DisplayContact displayContact)
+    {
+        bool isNewContact = displayContact.ContactInfo?.name == "";
+
+        var modalConfig = new AntDesign.ModalOptions
+        {
+            Title = isNewContact ? Localizer["SetNewContact"] : Localizer["EditContact"],
+            OkText = Localizer["Save"].ToString(),
+            CancelText = Localizer["Cancel"].ToString(),
+            Footer = null,
+            Centered = true,
+            Width="700px",
+            Content =@<ContactForm OnSubmitSuccess="(contact) => UpdateContact(contact, displayContact.ContactRole)"
+             OnCancel="CloseModal"
+             CurrentContact="@(isNewContact ? null : displayContact.ContactInfo)" />
+    };
+
+        _modalRef = await _modalService.CreateModalAsync(modalConfig);
+
+    }
+
+    private async Task CloseModal()
+    {
+        if (_modalRef != null)
+        {
+            await _modalRef.CloseAsync();
+        }
+    }
+
+
+    private async Task UpdateContact(ContactInfo newContact, string contactRole)
+    {
+        if (newContact != null)
+        {
+            contacts.First(x => x.ContactRole == contactRole).ContactInfo = newContact;
+        }
+        else
+        {
+            removeContactFrom(contactRole);
+        }
+        await CloseModal();
+    }
+
+    private void removeContactFrom(string role)
+    {
+        contacts.First(contact => contact.ContactRole == role).ContactInfo = DefaultContactInfo.GetDefaultContactInfo();
+    }
+
+    private string getUpdatedContactInfo(string role)
+    {
+        ContactInfo contactInfo = contacts.First(x => x.ContactRole == role).ContactInfo;
+        return JsonConvert.SerializeObject(contactInfo);
+    }
+
+    private bool HasChanges()
+    {
+        Contact AppContact = ApplicationObj.Contact ?? new();
+        bool hasChanges = (getUpdatedContactInfo("Manager") != JsonConvert.SerializeObject(AppContact.GetManager()) ||
+                        getUpdatedContactInfo("TeamLead") != JsonConvert.SerializeObject(AppContact.GetTeamLead()) || 
+                        getUpdatedContactInfo("TechLead") != JsonConvert.SerializeObject(AppContact.GetTechLead()) ||
+                        getUpdatedContactInfo("ClientLead") != JsonConvert.SerializeObject(AppContact.GetClientLead()) ||
+                        getUpdatedContactInfo("ClientManager") != JsonConvert.SerializeObject(AppContact.GetClientManager())
+        );
+
+        return hasChanges;
+    }
+
+
+
+    public async Task<bool> saveChanges()
+    {
+        if (!HasChanges())
+        {
+            return false;
+        }
+
+        ApplicationObj.Contact.Manager = getUpdatedContactInfo("Manager");
+        ApplicationObj.Contact.TeamLead = getUpdatedContactInfo("TeamLead");
+        ApplicationObj.Contact.TechLead = getUpdatedContactInfo("TechLead");
+        ApplicationObj.Contact.ClientLead = getUpdatedContactInfo("ClientLead");
+        ApplicationObj.Contact.ClientManager = getUpdatedContactInfo("ClientManager");
+
+        ApplicationObj.Contact.LastUpdate = DateTime.Now;
+        ApplicationObj.Contact.LastModifiedBy = await _authService.GetUserSID();
+
+        // subscribe all the contacts to app updates
+        List<ContactInfo> contacts = new List<ContactInfo> { ApplicationObj.Contact.GetManager(), ApplicationObj.Contact.GetTeamLead(), ApplicationObj.Contact.GetTechLead(), ApplicationObj.Contact.GetClientLead(), ApplicationObj.Contact.GetClientManager() };
+        foreach (ContactInfo contact in contacts)
+        {
+            if (contact.userID != -1 && contact.userAdId != "" && contact.userAdId != null)
+            {
+                ApplicationSubscription applicationSubscription = await _crudService.GetRecordAsync<ApplicationSubscription>(ApplicationObj.ApplicationID, contact.userID);
+                if (applicationSubscription == null)
+                    await _crudService.InsertAsync<ApplicationSubscription>(new ApplicationSubscription() { ApplicationID = ApplicationObj.ApplicationID, UserID = contact.userID });
+            }
+        }
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        return true;
+    }
+
+    public bool hasErrors()
+    {
+        return false;
+    }
+
+    public void reset()
+    {
+        contacts = new List<DisplayContact>();
+        InitContactDisplay();
+
+        StateHasChanged();
+        return;
+    }
+
+}

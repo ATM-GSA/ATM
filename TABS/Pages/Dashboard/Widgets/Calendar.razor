@@ -1,0 +1,437 @@
+﻿@inject UserPreferenceService UserPreferenceService
+@inject ApplicationService ApplicationService
+@inject Global Global
+@inject CrudService CrudService
+@inject UserPreferenceService UserPreferenceService
+@inject WidgetState WidgetState
+@inject LayoutState LayoutState
+@implements IDisposable
+
+<div class="@(LayoutState.collapsed ? "widget-half-width-collapsed": "widget-half-width-uncollapsed")">
+    <Card Title=@(((string)@Localizer["Calendar"]).ToUpper()) Class="dashboard-widget" Size="small">
+        <Extra>
+            @if (WidgetState.editMode)
+            {
+                @if (order == 1)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" Disabled></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" OnClick=@(()=>WidgetState.DecrementOrder("Calendar"))></Button>
+                }
+
+                @if (order == WidgetState.activeWidgets.Count)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" Disabled Style="margin-left: 5px;"></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" OnClick=@(()=>WidgetState.IncrementOrder("Calendar")) Style="margin-left: 5px;"></Button>
+                }
+            }
+        </Extra>
+        <Body>
+            <div style="overflow: auto; min-height: 220px; max-height: 340px;">
+                @if (loadComplete)
+                {
+                    <div>
+                        <div style="display: flex; justify-content: center;">
+                            <AntDesign.Calendar Class="dashboard-calendar-background" Mode="@mode" OnPanelChange="OnPanelChange" HeaderRender="HeaderRender" FullScreen="@false" DateFullCellRender="DateCellRenderFull" MonthFullCellRender="MonthCellRenderFull" Value="@value" OnSelect="OnSelect" Style="padding-right: 8px; padding-left: 8px; max-width: 500px;" />
+                        </div>
+                    </div>
+                    <div style="margin-left: 12px; margin-top: 10px;">
+                        <div style="font-size: 16px;">  <b>  @Localizer["Dashboard.TasksOnDate", title] </b></div>
+                        <div style="margin-top: 5px;">
+                            @if (selectedData.Count > 0)
+                            {
+                                foreach (EventDisplay data in selectedData)
+                                {
+                                    <NavLink href=@data.url class="dashboard-navlinks">
+                                        <div class="event-entry-item">
+                                            @data.eventMessage
+                                        </div>
+                                    </NavLink>
+                                }
+                            }
+                            else
+                            {
+                                if (mode == DatePickerType.Month)
+                                {
+                                    <div style=" padding-top: 8px; padding-bottom: 8px; padding-left: 15px; padding-right: 15px;">
+                                        @Localizer["Dashboard.NoScheduledTasksDay"]
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div style=" padding-top: 8px; padding-bottom: 8px; padding-left: 15px; padding-right: 15px;">
+                                        @Localizer["Dashboard.NoScheduledTasksMonth"]
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div style="display: flex; align-items: center; justify-content: center; margin-top: 70px;">
+                        <Spin size="large" Tip="Loading..." />
+                    </div>
+                }
+            </div>
+
+        </Body>
+    </Card>
+</div>
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [CascadingParameter(Name = "collapsed")]
+    public bool collapsed { get; set; }
+
+    private DateTime selectedDate = DateTime.Today;
+    string title = DateTime.Today.ToString("dddd, dd MMMM yyyy");
+    private DateTime selectedValue = DateTime.Today;
+    private DateTime value = DateTime.Today;
+    private string mode = DatePickerType.Month;
+    private List<EventData> eventDataList = new();
+    private List<EventDisplay> selectedData = new();
+    private bool loadComplete = false;
+    private int order;
+
+    class EventDisplay
+    {
+        public RenderFragment eventMessage;
+        public string url;
+    }
+
+    class EventData
+    {
+        public Application eventApp;
+        public string moduleName;
+        public DateTime nextUpdate;
+    }
+
+    class EventStringAndURL
+    {
+        public string message;
+        public string url;
+    }
+
+    protected override void OnInitialized()
+    {
+        foreach (Application _app in LayoutState.FavApps)
+        {
+            if (!_app.IsArchived)
+            {
+                ApplicationProperties _appProp = _app.GetApplicationProperties();
+                if (_appProp != null)
+                {
+                    Dictionary<ModuleTypeEnum, Module> appModules = _app.GetModules();
+                    foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+                    {
+                        Module eventModule = appModules[moduleType];
+                        if (eventModule != null)
+                        {
+                            eventDataList.Add(new EventData { eventApp = _app, moduleName = moduleType.ToString(), nextUpdate = eventModule.NextUpdate });
+                        }
+                    }
+                }
+            }
+        }
+        getDayData();
+        LayoutState.OnChange += StateHasChanged;
+        WidgetState.OnChange += StateHasChanged;
+        WidgetState.OnChange += RefreshData; // We should refresh the data displayed whenever OnChange is invoked
+        order = WidgetState.GetOrderOfWidget("Calendar");
+        loadComplete = true;
+    }
+
+    // We are updating the data in eventDataList with updated data from LayoutState
+    private void RefreshData()
+    {
+        eventDataList.Clear(); 
+        foreach (Application _app in LayoutState.FavApps)
+        {
+            if (!_app.IsArchived)
+            {
+                ApplicationProperties _appProp = _app.GetApplicationProperties();
+                if (_appProp != null)
+                {
+                    Dictionary<ModuleTypeEnum, Module> appModules = _app.GetModules();
+                    foreach (ModuleTypeEnum moduleType in ModuleTypeEnumExtensions.GetDisplayedModules())
+                    {
+                        Module eventModule = appModules[moduleType];
+                        if (eventModule != null)
+                        {
+                            eventDataList.Add(new EventData { eventApp = _app, moduleName = moduleType.ToString(), nextUpdate = eventModule.NextUpdate });
+                        }
+                    }
+                }
+            }
+        }
+        getDayData();
+        order = WidgetState.GetOrderOfWidget("Calendar");
+        loadComplete = true;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        LayoutState.OnChange -= StateHasChanged;
+        WidgetState.OnChange -= StateHasChanged;    
+        WidgetState.OnChange -= RefreshData;
+    }
+
+    private RenderFragment DateCellRenderFull(DateTime value)
+    {
+        //grab month information from API call eventually
+        List<EventData> currentMonthEvents = eventDataList.Where(e => (e.nextUpdate.Month == selectedValue.Month && e.nextUpdate.Year == selectedValue.Year)).ToList();
+
+
+        string cssClass = "";
+        if (currentMonthEvents.Any(data => data.nextUpdate.Day == value.Day) && value != selectedDate)
+        {
+            cssClass = "calendar-event-present";
+        }
+
+        return
+    @<Template>
+        <div class="@cssClass">
+            @value.Day
+        </div>
+    </Template>
+    ;
+    }
+
+    private RenderFragment MonthCellRenderFull(DateTime value)
+    {
+        List<EventData> currentYearEvents = eventDataList.Where(e => (e.nextUpdate.Year == selectedValue.Year)).ToList();
+
+        string cssClass = "";
+        if (currentYearEvents.Any(data => data.nextUpdate.Month == value.Month) && value != selectedDate)
+        {
+            cssClass = "calendar-event-present-month";
+        }
+
+        return
+    @<Template>
+        <div class="@cssClass">
+        @value.ToString("MMM")
+    </div>
+    </Template>
+    ;
+    }
+
+    private void OnSelect(DateTime value)
+    {
+        this.value = value;
+        selectedValue = value;
+        if (mode == DatePickerType.Month)
+        {
+            title = value.ToString("dddd, dd MMMM yyyy");
+            getDayData();
+        }
+        else
+        {
+            title = value.ToString("MMMM yyyy");
+            getMonthData();
+        }
+    }
+
+
+    private void OnPanelChange(DateTime value, string mode)
+    {
+        if (mode == DatePickerType.Month)
+        {
+
+            mode = DatePickerType.Year;
+            title = selectedValue.ToString("MMMM yyyy");
+            getMonthData();
+
+        }
+        else
+        {
+
+            mode = DatePickerType.Month;
+            title = selectedValue.ToString("dddd, dd MMMM yyyy");
+            getDayData();
+        }
+    }
+
+    private void getDayData()
+    {
+        List<EventData> selectedDayData = new();
+        selectedDayData = eventDataList.FindAll(e =>
+        (e.nextUpdate.Month == selectedValue.Month &&
+        e.nextUpdate.Year == selectedValue.Year && e.nextUpdate.Day == selectedValue.Day));
+        List<EventDisplay> newSelectedData = new();
+
+        foreach (var data in selectedDayData)
+        {
+            string formattedModuleName = Localizer[data.moduleName];
+            string dataString = Localizer["Dashboard.UpdateTask", data.eventApp.Identification.Name, formattedModuleName];
+            RenderFragment eventMessageFragment =
+    @<div>@dataString</div>
+    ;
+            string url = "applications/" + data.eventApp.ShortID + "/" + data.moduleName;
+            newSelectedData.Add(new EventDisplay { eventMessage = eventMessageFragment, url = url });
+        }
+        selectedData = newSelectedData;
+    }
+
+
+private void getMonthData()
+{
+List<EventData> selectedMonthData = new();
+selectedMonthData = eventDataList
+.FindAll(e =>
+(e.nextUpdate.Month == selectedValue.Month &&
+e.nextUpdate.Year == selectedValue.Year));
+selectedMonthData = selectedMonthData.OrderBy(o => o.nextUpdate).ToList();
+List<EventDisplay> newSelectedData = new();
+foreach (var data in selectedMonthData)
+{
+string formattedModuleName = Localizer[data.moduleName];
+string updateString = Localizer["Dashboard.UpdateTask", data.eventApp.Identification.Name, formattedModuleName];
+RenderFragment eventMessageFragment = 
+    @<div>
+    <b>@data.nextUpdate.ToString("[MMM dd]  ")</b> @updateString
+</div>;
+//string dataString = data.nextUpdate.ToString("[MMM dd] ") + "Update " + data.eventApp.Identification.Name + " " + formattedModuleName;
+string url = "applications/" + data.eventApp.ShortID + "/" + data.moduleName;
+newSelectedData.Add(new EventDisplay { eventMessage = eventMessageFragment, url = url });
+}
+selectedData = newSelectedData;
+}
+
+// Code from this point onwards is for the custom calendar header.
+// This code is necessary because the month and year information of Ant Design calendar header's
+//  does not change when you navigate to a different month/year without using their header.
+
+
+private RenderFragment GetMonthOptions()
+{
+return@<Template>
+    @for (int index = 1; index <= 12; index++)
+    {
+        <option key="@index" value="@index">
+            @(index)
+        </option>
+    }
+
+</Template>;
+}
+
+private RenderFragment GetYearOptions(int currentYear)
+{
+return @<Template>
+    @for (int i = currentYear - 10; i < currentYear + 10; i += 1)
+    {
+        <option key="@i" value="@i">
+            @(i)
+        </option>
+    }
+
+</Template>;
+}
+
+private void OnSelectYear(ChangeEventArgs args, CalendarHeaderRenderArgs renderArgs)
+{
+int year = Convert.ToInt32(args.Value);
+renderArgs.OnChange.InvokeAsync(DateHelper.CombineNewDate(renderArgs.Value, year: year));
+}
+
+private void OnSelectMonth(ChangeEventArgs args, CalendarHeaderRenderArgs renderArgs)
+{
+int month = Convert.ToInt32(args.Value);
+renderArgs.OnChange.InvokeAsync(DateHelper.CombineNewDate(renderArgs.Value, month: month));
+}
+
+private void toggleMode()
+{
+if (mode == DatePickerType.Month)
+{
+mode = DatePickerType.Year;
+
+}
+else
+{
+mode = DatePickerType.Month;
+
+}
+}
+
+private void OnTypeChange()
+{
+
+}
+
+private RenderFragment HeaderRender(CalendarHeaderRenderArgs args)
+{
+int start = 0;
+int end = 12;
+
+int month = args.Value.Month;
+int year = args.Value.Year;
+
+return
+@<Template>
+    <div style="padding: 8px">
+        <Row Gutter="8">
+            <AntDesign.Col>
+                <RadioGroup size="small" OnChange="value => { args.OnTypeChange.InvokeAsync(value); toggleMode(); }" Value="@args.Type" TValue="string">
+                    <Radio RadioButton Value="@DatePickerType.Month">@Localizer["Month"]</Radio>
+                    <Radio RadioButton Value="@DatePickerType.Year">@Localizer["Year"]</Radio>
+                </RadioGroup>
+            </AntDesign.Col>
+            <AntDesign.Col>
+                <select size="small"
+                        dropdownMatchSelectWidth="@false"
+                        class="transparent-select"
+                        @onchange="e => OnSelectYear(e, args)"
+                        value="@year">
+                    @GetYearOptions(year)
+                </select>
+            </AntDesign.Col>
+            <AntDesign.Col>
+                <select size="small"
+                        dropdownMatchSelectWidth="@false"
+                        value="@month"
+                        class="transparent-select"
+                        @onchange="e => OnSelectMonth(e, args)">
+                    @GetMonthOptions()
+                </select>
+            </AntDesign.Col>
+        </Row>
+    </div>
+</Template>;
+}
+}
+
+
+
+<style>
+    .site-calendar-card {
+        max-width: 400px;
+        border: 1px solid #f0f0f0;
+        padding: 2px;
+    }
+
+    .events-card {
+        max-width: 400px;
+        border: 1px solid #f0f0f0;
+        border-radius: 2px;
+        padding: 6px;
+    }
+
+    .transparent-select {
+        background: transparent;
+    }
+
+    select option {
+        color: black;
+    }
+</style>

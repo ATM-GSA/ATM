@@ -1,0 +1,163 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@using TABS.Data;
+@using Newtonsoft.Json;
+@using System.Text.RegularExpressions;
+@using TABS.Shared.Helpers;
+@inject IStringLocalizer<App> Localizer;
+
+<Form @ref="form"
+      Model="@model"
+      ValidateOnChange="@true"
+      ValidateMode="@FormValidateMode.Default"
+      OnFinish="OnSubmit"
+      WrapperColSpan="14"
+      LabelColSpan="6"
+      Layout="@FormLayout.Horizontal"
+      OnValidationStateChanged="HandleValidationStateChange"
+      >
+    <FormItem Label="@Localizer[ModuleProperties["Name"].LocalizationKey]">
+        <Input @bind-Value="@context.Name" AllowClear="true" DebounceMilliseconds="500" />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["URL"].LocalizationKey]">
+        <Input @bind-Value="@context.URL" AllowClear="true" DebounceMilliseconds="500" />
+    </FormItem>
+
+    <FormItem Label="@Localizer[ModuleProperties["Type"].LocalizationKey]" WrapperColSpan="10">
+@*        <EnumSelect TEnum="Database.DatabaseType"
+                    @bind-Value="@context.Type"
+                    Placeholder="Choose">
+        </EnumSelect>*@
+        <Select DataSource="@_dbTypes"
+                @bind-Value="@context.Type"
+                 Placeholder="@Localizer["Choose"]"
+                 LabelName="@nameof(EnumType<Database.DatabaseType>.Name)"
+                 ValueName="@nameof(EnumType<Database.DatabaseType>.Value)"
+        />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["Version"].LocalizationKey]">
+        <Input @bind-Value="@context.Version" DebounceMilliseconds="500"
+               AllowClear="true" />
+    </FormItem>
+    <FormItem Label="@Localizer[ModuleProperties["Platform"].LocalizationKey]">
+        <Input @bind-Value="@context.Platform" DebounceMilliseconds="500"
+               AllowClear="true" />
+    </FormItem>
+    <FormItem WrapperColSpan="14" WrapperColOffset="2">
+        <Button Type="@ButtonType.Primary"
+                HtmlType="submit"
+                Disabled="@(!_isValid || !form.IsModified)"
+                Loading="@_awaitingSave">
+            @Localizer["Save"]
+        </Button>
+    </FormItem>
+</Form>
+
+@code
+
+{
+    private class Model
+    {
+        [Required]
+        [StringLength(1000)]
+        public string Name { get; set; }
+
+        [StringLength(1500)]
+        @*[RegularExpression(@"^(http|https):\/\/([^\s]*)$", ErrorMessage = "URL must start with http:// or https://, and not have any whitespace.")]*@
+        public string URL { get; set; }
+
+        [Required]
+        public Database.DatabaseType Type { get; set; }
+
+        [StringLength(200)]
+        public string Version { get; set; }
+
+        [StringLength(200)]
+        public string Platform { get; set; }
+    }
+
+    [Parameter]
+    public EventCallback<Database> OnSubmitSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public Database CurrentDatabase { get; set; }
+
+    private bool _awaitingSave = false;
+
+    private Form<Model> form;
+    private Model model = new Model();
+    private bool submitted = false;
+
+    private bool _isValid = true;
+
+    private List<EnumType<Database.DatabaseType>> _dbTypes = new List<EnumType<Database.DatabaseType>>();
+
+
+    private Dictionary<string, ModuleProperty> ModuleProperties = new Database().GetProperties();
+
+    protected override void OnInitialized()
+    {
+        _dbTypes.Clear(); 
+        foreach (Database.DatabaseType enumValue in Enum.GetValues(typeof(Database.DatabaseType)))
+        {
+            Type _enumType = typeof(Database.DatabaseType);
+            string name = EnumTypeExtensions.GetLocalizedDisplayName(_enumType, enumValue);
+            _dbTypes.Add(new EnumType<Database.DatabaseType>(name, enumValue));
+        }
+
+
+        model.Name = "";
+        model.Platform = "";
+        model.Version = "";
+        model.URL = "";
+        model.Type = Database.DatabaseType.Development;
+
+        if (CurrentDatabase != null)
+        {
+            model.Name = CurrentDatabase.Name != null ? CurrentDatabase.Name : "";
+            model.Platform = CurrentDatabase.Platform != null ? CurrentDatabase.Platform : "";
+            model.Version = CurrentDatabase.Version != null ? CurrentDatabase.Version : "";
+            model.URL = CurrentDatabase.URL != null ? CurrentDatabase.URL : "";
+            model.Type = CurrentDatabase.Type;
+
+            if (model.Name == "") _isValid = false;
+        }
+        else
+        {
+            _isValid = false;
+        }
+        StateHasChanged();
+    }
+
+    private void HandleValidationStateChange(ValidationStateChangedEventArgs e)
+    {
+        // if (model.Name == "" || model.Name == null || !(model.URL == "" || model.URL == null || Regex.IsMatch(model.URL, @"^(http|https):\/\/([^\s]*)$"))) {
+        if (model.Name == "" || model.Name == null) {
+            _isValid = false;
+        }
+        else _isValid = true;
+        StateHasChanged();
+    }
+
+    private async Task OnSubmit(EditContext editContext)
+    {
+        _awaitingSave = true;
+        StateHasChanged();
+
+        Database NewDb = new Database();
+        NewDb.Name = model.Name;
+        NewDb.URL = model.URL == null ? "" : model.URL;
+        NewDb.Version = model.Version == null ? "" : model.Version;
+        NewDb.Platform = model.Platform == null ? "" : model.Platform;
+        NewDb.Type = model.Type;
+
+        _awaitingSave = false;
+
+        submitted = true;
+        await OnSubmitSuccess.InvokeAsync(NewDb);
+
+    }
+}
+

@@ -1,0 +1,179 @@
+﻿@using Newtonsoft.Json;
+@inject UserPreferenceService UserPreferenceService
+@inject ApplicationService ApplicationService
+@inject Global Global
+@inject WidgetState WidgetState
+@inject LayoutState LayoutState
+@implements IDisposable
+
+<div class=@generateWidthCSSClass()>
+    <Card Title=@(((string)Localizer["Contacts"]).ToUpper()) Class="dashboard-widget" Size="small">
+        <Extra>
+            @if (WidgetState.editMode)
+            {
+                <RadioGroup @bind-Value="FullWidth" ButtonStyle="@RadioButtonStyle.Solid" Size="small" Style="margin-right: 10px;">
+                    <Radio RadioButton Value=@false> @Localizer["HalfWidth"]</Radio>
+                    <Radio RadioButton Value=@true> @Localizer["FullWidth"] </Radio>
+                </RadioGroup>
+                @if (order == 1)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" Disabled></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-left" OnClick=@(()=>WidgetState.DecrementOrder("Contact"))></Button>
+                }
+
+                @if (order == WidgetState.activeWidgets.Count)
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" Disabled Style="margin-left: 5px;"></Button>
+                }
+                else
+                {
+                    <Button Size="@ButtonSize.Small" Icon="caret-right" OnClick=@(()=>WidgetState.IncrementOrder("Contact")) Style="margin-left: 5px;"></Button>
+                }
+                <Button Size="@ButtonSize.Small" Type="@ButtonType.Text" OnClick=@(()=>WidgetState.Hide("Contact")) Style="margin-left: 8px;">
+                    <Icon Type="delete" Theme="fill" />
+                </Button>
+            }
+        </Extra>
+        <Body>
+            <div style="overflow: auto; min-height: 180px; max-height: 340px;">
+                <Spin Spinning="@loading">
+                    <Table DataSource="applicationsTable"
+                           TItem="ApplicationInformation"
+                           Size="@TableSize.Small">
+                        <Column TData="string"
+                                DataIndex="Application.Identification.Name"
+                                Title=@Localizer["Application"]
+                                Width="25%">
+                            <NavLink href=@("applications/" + context.Application.ShortID)>@context.Application.Identification.Name</NavLink>
+
+                        </Column>
+                        <Column TData="string"
+                                DataIndex="Manager.name"
+                                Title=@Localizer["Application.Contacts.Manager"]>
+                            @context.Manager.name
+                            @if (context.Manager.email != null)
+                            {
+                                <span style="font-size: 12px;"> (<a href=@("mailto:" + context.Manager.email)>  @context.Manager.email </a>) </span>
+                            }
+                        </Column>
+                        <Column TData="string"
+                                DataIndex="TeamLead.name"
+                                Title=@Localizer["Application.Contacts.TeamLead"]>
+                            @context.TeamLead.name
+                            @if (context.TeamLead.email != null)
+                            {
+                                <span style="font-size: 12px;"> (<a href=@("mailto:" + context.TeamLead.email)>  @context.TeamLead.email </a>) </span>
+                            }
+                        </Column>
+                    </Table>
+                </Spin>
+            </div>
+        </Body>
+    </Card>
+</div>
+
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    bool fullWidth;
+
+    public bool FullWidth
+    {
+        get { return fullWidth; }
+        set
+        {
+            fullWidth = value;
+            WidgetState.SetWidthOfActiveWidget("Contact", value);
+        }
+    }
+
+    List<ApplicationInformation> applicationsTable;
+    List<ApplicationInformation> originalApplicationsTable;
+
+    bool loading = false;
+    int order;
+    public class ApplicationInformation
+    {
+        public Application Application { get; set; }
+        public ContactInfo Manager { get; set; }
+        public ContactInfo TeamLead { get; set; }
+        public Architecture Architecture { get; set; }
+        public ApplicationIdentification ApplicationIdentification { get; set; }
+    }
+
+    protected override void OnInitialized()
+    {
+        applicationsTable = new List<ApplicationInformation>();
+        originalApplicationsTable = new List<ApplicationInformation>();
+        loading = true;
+
+        foreach (Application populatedApp in LayoutState.FavApps)
+        {
+            originalApplicationsTable.Add(new ApplicationInformation()
+            {
+                Application = populatedApp,
+                Manager = populatedApp.Contact.GetManager() == null ? (new ContactInfo { name = Localizer["NoManager"] }) : (populatedApp.Contact.GetManager().name == "" ? new ContactInfo { name = Localizer["NoManager"] } : populatedApp.Contact.GetManager()),
+                TeamLead = populatedApp.Contact.GetTeamLead() == null ? (new ContactInfo { name = Localizer["NoTeamLead"] }) : (populatedApp.Contact.GetTeamLead().name == "" ? new ContactInfo { name = Localizer["NoTeamLead"] } : populatedApp.Contact.GetTeamLead())
+            });
+        }
+        applicationsTable = originalApplicationsTable.ToList();
+        LayoutState.OnChange += StateHasChanged;
+        WidgetState.OnChange += StateHasChanged;
+        WidgetState.OnChange += RefreshData;  // We should refresh the data displayed whenever OnChange is invoked
+        order = WidgetState.GetOrderOfWidget("Contact");
+        fullWidth = WidgetState.GetWidthOfActiveWidget("Contact");
+        loading = false;
+    }
+
+    // We are updating the data in eventDataList with updated data from LayoutState
+    private void RefreshData()
+    {
+        originalApplicationsTable.Clear();
+        foreach (Application populatedApp in LayoutState.FavApps)
+        {
+            originalApplicationsTable.Add(new ApplicationInformation()
+            {
+                Application = populatedApp,
+                Manager = populatedApp.Contact.GetManager() == null ? (new ContactInfo { name = Localizer["NoManager"] }) : (populatedApp.Contact.GetManager().name == "" ? new ContactInfo { name = Localizer["NoManager"] } : populatedApp.Contact.GetManager()),
+                TeamLead = populatedApp.Contact.GetTeamLead() == null ? (new ContactInfo { name = Localizer["NoTeamLead"] }) : (populatedApp.Contact.GetTeamLead().name == "" ? new ContactInfo { name = Localizer["NoTeamLead"] } : populatedApp.Contact.GetTeamLead())
+            });
+        }
+        applicationsTable = originalApplicationsTable.ToList();
+
+        order = WidgetState.GetOrderOfWidget("Contact");
+        fullWidth = WidgetState.GetWidthOfActiveWidget("Contact");
+        loading = false;
+        StateHasChanged();
+        
+    }
+
+    private string generateWidthCSSClass()
+    {
+        if (fullWidth)
+        {
+            return "widget-full-width";
+        } else
+        {
+            if (LayoutState.collapsed)
+            {
+                return "widget-half-width-collapsed";
+            } else
+            {
+                return "widget-half-width-uncollapsed";
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        LayoutState.OnChange -= StateHasChanged;
+        WidgetState.OnChange -= StateHasChanged;    
+        WidgetState.OnChange -= RefreshData;
+    }
+}
+

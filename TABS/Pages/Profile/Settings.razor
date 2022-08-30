@@ -1,0 +1,46 @@
+﻿@using Microsoft.AspNetCore.WebUtilities
+@inject IStringLocalizer<App> Localizer
+@inject NavigationManager NavManager
+
+<Tabs @bind-ActiveKey="@Key" Animated>
+    <TabPane Key="1">
+        <TabTemplate>
+            <span><Icon Type="user" />@Localizer["Account"]</span>
+        </TabTemplate>
+        <ChildContent>
+            <Profile />
+        </ChildContent>
+    </TabPane>
+    <TabPane Key="2">
+        <TabTemplate>
+            <span><Icon Type="bell" />@Localizer["Notifications"]</span>
+        </TabTemplate>
+        <ChildContent>
+            <Notifications />
+        </ChildContent>
+    </TabPane>
+</Tabs>
+
+@code {
+    public string Key { get; set; } = "1";
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var uri = NavManager.ToAbsoluteUri(NavManager.Uri);
+            var queryStrings = QueryHelpers.ParseQuery(uri.Query);
+            if (queryStrings.TryGetValue("key", out var key))
+            {
+                if (key == "1" || key == "2")
+                {
+                    Key = key;
+                    StateHasChanged();
+                }
+            }
+        }
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+}

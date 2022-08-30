@@ -1,0 +1,99 @@
+﻿.banner-outer-wrapper {
+    position: fixed;
+    left: 0;
+    width: 100%;
+    z-index: 5;
+}
+
+.banner-inner-wrapper {
+    margin: 15px;
+    margin-left: 30px;
+}
+
+.top-tool-bar-wrapper {
+    height: 45px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.atm-logo-outer-wrapper {
+    margin-left: 30px;
+    font-size: 20px;
+    letter-spacing: 2px;
+    margin-right: 85px;
+}
+
+.atm-logo-inner-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 3px;
+}
+
+.atm-logo-inner-wrapper-deactivated {
+    display: flex;
+    justify-content: center;
+    margin-top: 3px;
+    color: white;
+}
+
+.logo-svg-wrapper {
+    margin-top: 0.75px;
+}
+
+.logo-text-wrapper {
+    margin-left: 8px;
+    margin-right: 20px;
+}
+
+.center-items {
+    display: flex;
+    align-items: center;
+}
+
+.search-bar-wrapper {
+    margin-right: 40px;
+}
+
+::deep .transparent-button {
+    background: transparent;
+    border-color: transparent;
+}
+
+.dropdown-wrapper {
+    margin-right: 20px;
+    color: white;
+}
+
+.banner-outer-wrapper-reg {
+    background-color: white;
+    position: fixed;
+    left: 0;
+    width: 100%;
+    z-index: 5
+}
+
+.top-tool-bar-wrapper-reg {
+    background-color: #33495D;
+    height: 45px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.atm-logo-inner-wrapper-reg {
+    padding-top: 11px;
+    margin-left: 30px;
+    font-size: 20px;
+    letter-spacing: 2px;
+}
+
+.logo-svg-wrapper-reg {
+    float: left;
+    margin-top: 0.75px;
+}
+
+.logo-text-wrapper-reg {
+    float: left;
+    margin-left: 8px;
+    color: white
+}

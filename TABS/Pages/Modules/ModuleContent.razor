@@ -1,0 +1,177 @@
+﻿@using TABS.Shared.ModuleTables
+@using TABS.Data 
+
+@inject CrudService _crudService
+@inject NavigationManager _navManager
+@inject MessageService _message
+@inject Global Global
+@inject IStringLocalizer<App> Localizer
+
+@if (_moduleType == ModuleTypeEnum.Architecture)
+{
+    <Tabs DefaultActiveKey="1" Size="@TabSize.Small" Type="TabType.Card">
+        <TabPane Key="1" Tab="@Localizer["Architecture"]" ForceRender="true">
+            <div>
+                <div style="margin-bottom: 8px;">
+                    @if (!(ApplicationObj.IsArchived || _isReadOnly || ApplicationObj.IsDeleted))
+                    {
+                        @if (!_isInEditMode)
+                        {
+                            <Button OnClick="() => { _isInEditMode = true; StateHasChanged(); }">@Localizer["EditValues"]</Button>
+                        }
+                        else
+                        {
+                            <Button OnClick="SaveChanges">@Localizer["Save"]</Button>
+                            <Button OnClick="ResetTable" Type="@ButtonType.Link" Danger>@Localizer["Cancel"]</Button>
+                        }
+
+                    }
+                </div>
+                <ModuleTable ApplicationObj="@ApplicationObj" typeKey="@_moduleType" @ref="_table" IsInEditMode="@_isInEditMode" IsReadOnly="ApplicationObj.IsArchived || _isReadOnly"
+                                ApplicationObjChanged="async (updated_app) => await ApplicationObjChanged.InvokeAsync(updated_app)"
+                                UseErrorBoundary=@false/>
+            </div>
+        </TabPane>
+        <TabPane Key="2" Tab="@Localizer["Dependencies"]" ForceRender="true">
+            <ErrorBoundary>
+                <ChildContent>
+                    <DependencyTable ApplicationObj="@ApplicationObj"
+                    ApplicationObjChanged="async (updated_app) => { 
+                        await ApplicationObjChanged.InvokeAsync(updated_app); 
+                        await OnApplicationSaved.InvokeAsync(true); } "
+                    IsDisabled="@(_isReadOnly || ApplicationObj.IsArchived || ApplicationObj.IsDeleted)"/>
+                    @* DependenciesTable makes updates live, hence we want those changes reflected *@
+                </ChildContent>
+                <ErrorContent>
+                    <Alert 
+                        Type="@AlertType.Error"
+                        Message="@Localizer["ModulePage.TableError"]"
+                        ShowIcon="true"
+                    />
+                </ErrorContent>
+            </ErrorBoundary>
+        </TabPane>
+        <TabPane Key="3" Tab="@Localizer["Dependees"]" ForceRender="true">
+            <DependeesTable ApplicationObj=@ApplicationObj />
+        </TabPane>
+    </Tabs>
+}
+else
+{
+    <div>
+        <div style="margin-bottom: 8px;">
+            @if (!(ApplicationObj.IsArchived || _isReadOnly || ApplicationObj.IsDeleted))
+            {
+                @if (!_isInEditMode)
+                {
+                    <Button OnClick="() => { _isInEditMode = true; StateHasChanged(); }">@Localizer["EditValues"]</Button>
+                }
+                else
+                {
+                    <Button Disabled="_isSaving" OnClick="SaveChanges">@Localizer["Save"]</Button>
+                    <Button Disabled="_isSaving" OnClick="ResetTable" Type="@ButtonType.Link" Danger>@Localizer["Cancel"]</Button>
+                }
+
+            }
+        </div>
+        <ModuleTable ApplicationObj="@ApplicationObj" typeKey="@_moduleType" @ref="_table" IsInEditMode="@_isInEditMode" IsReadOnly="ApplicationObj.IsArchived || _isReadOnly" 
+                        ApplicationObjChanged="async (updated_app) => await ApplicationObjChanged.InvokeAsync(updated_app)"
+                        UseErrorBoundary=@false/>
+    </div>
+}
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; }
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnApplicationSaved { get; set; }
+
+    
+    [Parameter]
+    public ModuleTypeEnum _moduleType { get; set; }
+
+    [CascadingParameter(Name = "IsReadOnlyUser")]
+    private bool _isReadOnly { get; set; }
+
+    private ModuleTable _table;
+
+    private bool _isSaving = false;
+    private bool _isInEditMode = false;
+
+    private void ResetTable()
+    {
+        _table.reset();
+        _isInEditMode = false;
+        StateHasChanged();
+    }
+
+    private async void SaveChanges()
+    {
+        if (_table.hasErrors())
+        {
+            await _message.Error(Localizer["ModulePage.FixErrorsAndSaveAgain"].ToString());
+            return;
+        }
+
+        _isSaving = true;
+        StateHasChanged();
+
+        // Early back-out
+        Application appDeleteTest = await _crudService.GetRecordAsync<Application>(ApplicationObj.ApplicationID);
+        if (appDeleteTest == null || appDeleteTest.IsDeleted)
+        {
+            // Show app deleted toast message
+            _message.Warning(Localizer["AppDetails.DeletedAppTitle"].ToString());
+
+            _isSaving = false;
+            StateHasChanged();
+
+            // Take the user back to app details
+            _navManager.NavigateTo(Global.GetAppDetailsURL(ApplicationObj.ShortID)); 
+            return;
+        }
+
+
+        bool isModified = await _table.saveChanges();
+
+        if (isModified)
+        {
+            string key = $"updatable-{DateTime.Now.Ticks}";
+            var config = new MessageConfig()
+            {
+                Content = Localizer["SavingChanges"].ToString(),
+                Key = key,
+                Duration = 0
+            };
+            _message.Loading(config);
+
+            await _crudService.UpdateAsync(ApplicationObj);
+            await ApplicationObjChanged.InvokeAsync(ApplicationObj); // Index should send notifications
+            
+            config.Content = Localizer["ModulePage.SaveSuccess"].ToString();
+            config.Duration = 2;
+            _message.Success(config);
+        }
+        else
+        {
+            _message.Warning(Localizer["ModulePage.NoChanges"].ToString());
+            _isSaving = false;
+            StateHasChanged();
+            return;
+        }
+
+        _isInEditMode = false;
+        _isSaving = false;
+        StateHasChanged();
+        await OnApplicationSaved.InvokeAsync(isModified);
+        return;
+    }
+
+    
+
+}

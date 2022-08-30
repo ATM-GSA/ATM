@@ -1,0 +1,64 @@
+﻿.header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+.mod-table {
+    margin: 8px 0px;
+}
+
+.column-required {
+    display: flex;
+    justify-content: center;
+}
+
+::deep .status-tag {
+    font-size: 14px;
+}
+
+.column-actions {
+    display: flex;
+    justify-content: center;
+}
+
+::deep .feature-button {
+    font-size: 14px;
+    margin-right: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+::deep .feature-button-active {
+    /*color: dodgerblue;
+    border-color: dodgerblue;*/
+    color: #418cd3;
+    border-color: #418cd3;
+}
+
+    ::deep .feature-button-active:hover {
+        color: #095cb5;
+        border-color: #095cb5;
+    }
+
+::deep .remove-button {
+    font-size: 14px;
+    margin: 0px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+::deep .remove-button-active {
+    /*color: orangered;
+    border-color: orangered;*/
+    color: #d14040;
+    border-color: #d14040;
+}
+
+    ::deep .remove-button-active:hover {
+        color: #af0505;
+        border-color: #af0505;
+    }

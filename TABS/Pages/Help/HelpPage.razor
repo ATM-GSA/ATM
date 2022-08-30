@@ -1,0 +1,189 @@
+﻿@page "/help"
+
+
+<Card Style="min-width: 500px;">
+    <PageHeader>
+        <PageHeaderTitle>
+            @Localizer["HelpPage"]
+        </PageHeaderTitle>
+    </PageHeader>
+    <Divider Style="margin: 0px 0px;" />
+
+    <div style="padding: 23px;">
+        <p class="ant-typography ant-typography-secondary" style="margin-bottom: 24px; font-size: 12px;">
+            @Localizer["CurrentVersion"]: v1.0.1
+        </p>
+
+
+        <h2 style="margin-bottom: 12px;"> @Localizer["HelpPage.FavAndSubApps"] </h2> 
+        <div style="margin-bottom: 12px;"> @Localizer["HelpPage.FavAndSubApps.Paragraph1"] </div> 
+        <div style="margin-bottom: 12px;"> @Localizer["HelpPage.FavAndSubApps.Paragraph2"] </div> 
+
+        <h2 style="margin-bottom: 12px; margin-top: 16px;"> @Localizer["HelpPage.ArchiveDelRecoverApps"] </h2> 
+        <div style="margin-bottom: 12px;"> @Localizer["HelpPage.ArchiveDelRecoverApps.Paragraph1"] </div> 
+        <Collapse>
+            <Panel Key="1">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.ArchivingApps"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.ArchivingApps.Paragraph1"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.ArchivingApps.Paragraph2"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.ArchivingApps.Paragraph3"]
+                    </p>
+                </ChildContent>
+            </Panel>
+            <Panel Key="2">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.DelApps"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.DelApps.Paragraph1"] 
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.DelApps.Paragraph2"] 
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.DelApps.Paragraph3"] 
+                    </p>
+                </ChildContent>
+            </Panel>
+            <Panel Key="3">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.RecoverApps"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.RecoverApps.Paragraph1"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.RecoverApps.Paragraph2"]
+                    </p>
+                </ChildContent>
+            </Panel>
+        </Collapse>
+        <h2 style="margin-top: 16px; margin-bottom: 12px;"> @Localizer["Notifications"] </h2> 
+        <p style="margin-bottom: 12px;">
+            @Localizer["HelpPage.Notifications.Paragraph1"]
+        </p>
+        <p style="margin-bottom: 12px;">
+            @Localizer["HelpPage.Notifications.Paragraph2"]         
+        </p>
+        <p style="margin-bottom: 12px;">
+            @Localizer["HelpPage.Notifications.Paragraph3"]  
+        </p>
+        <Collapse>
+            <Panel Key="1">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.InAppNotifs"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.InAppNotifs.Paragraph1"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.InAppNotifs.Paragraph2"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.InAppNotifs.Paragraph3"]
+                    </p>
+                    <p style="font-size: 15px; margin-bottom: 12px; font-weight: 500;">
+                        @Localizer["HelpPage.CustomizationOptions"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.InAppNotifs.Paragraph4"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.InAppNotifs.Paragraph5"]
+                    </p>
+                </ChildContent>
+            </Panel>
+            <Panel Key="2">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.EmailNotifs"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.EmailNotifs.Paragraph1"]
+                    </p>
+                    <p style="font-size: 15px; margin-bottom: 12px; font-weight: 500;">
+                        @Localizer["HelpPage.CustomizationOptions"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.EmailNotifs.Paragraph2"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.EmailNotifs.Paragraph3"]
+                    </p>
+                </ChildContent>
+            </Panel>
+        </Collapse>
+        <h2 style="margin-top: 16px; margin-bottom: 12px;"> @Localizer["QuickSearch"] </h2> 
+        <p style="margin-bottom: 12px;">
+            @Localizer["HelpPage.QuickSearch.Paragraph1"]
+        </p>
+        <p style="margin-bottom: 12px;">
+            @Localizer["HelpPage.QuickSearch.Paragraph2"]
+        </p>
+        <Collapse>
+            <Panel Key="1">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.&&operator"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.&&operator.Paragraph1"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.&&operator.Paragraph2"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.&&operator.Paragraph3"]
+                    </p>
+                </ChildContent>
+            </Panel>
+            <Panel Key="2">
+                <HeaderTemplate>
+                    <span style="font-size: 16px; font-weight: 500;"> @Localizer["HelpPage.||operator"] </span>
+                </HeaderTemplate>
+                <ChildContent>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.||operator.Paragraph1"]
+                    </p>
+                    <p style="margin-bottom: 12px;">
+                        @Localizer["HelpPage.||operator.Paragraph2"]
+                    </p>
+                    <p>
+                        @Localizer["HelpPage.||operator.Paragraph3"]
+                    </p>
+                </ChildContent>
+            </Panel>
+        </Collapse>
+        <div>
+            <h2 style="margin-top: 24px; margin-bottom: 12px;" id="report-bug-or-provide-feedback">Report a bug or provide feedback </h2> 
+            <p style="margin-bottom: 12px;">
+                If you find a bug or issue while using ATM, or if you have any feedback on how we can improve ATM, please fill out this short 
+                <a href="" target="_blank" rel="noopener noreferrer">user feedback or bug form</a> or contact Matthew Szczerba at 
+                <a href="@("mailto:?subject=Report Bug in ATM/GSA")"></a>. 
+                Our team monitors this regularly. It is with your help that we are able to improve ATM.
+            </p>
+            <p style="margin-bottom: 12px;">
+                To find a list of existing known bugs, please refer to 
+                <a href="" target="_blank" rel="noopener noreferrer">
+                    ATM/GSA Known Issues
+                </a> (links to a Word document).
+            </p>
+        </div>
+    </div>
+</Card>
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+}

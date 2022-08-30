@@ -1,0 +1,433 @@
+﻿@page "/Applications/{ShortID}/settings"
+@inject CrudService _crudService
+@inject AuthService _authService
+@inject UserService _userService
+@inject AuthService _authService
+@inject ApplicationService _appService
+@inject NavigationManager MyNavigationManager
+@inject TABS.Shared.LayoutState LayoutState
+@inject AntDesign.ModalService _modal
+@inject AntDesign.MessageService _messageService
+@inject Global Global 
+
+
+@*
+    Renders a settings page for an Application. This page should only be accessible to PowerUsers and Admins. Allows users to change the name
+    of an Application, update which modules are available/featured/unfeatured in an Application, and archive or soft-delete the Application.
+*@
+
+<AuthorizeView>
+    <Authorized>
+        @if (_isLoaded) // OnInitializedAsync has run (app data has been fetched from db, if available)
+        {
+            @if (_isViewable) // app is displayable to the current user (i.e., is complete, soft-deleted apps only for admin users, etc.)
+            {
+                @if (context.User.HasClaim("role", "Admin") || context.User.HasClaim("role", "PowerUser"))
+                {
+                    <Card>
+                        @* Header *@
+                        <PageHeader OnBack="OnExit">
+                            <PageHeaderBreadcrumb>
+                                <Breadcrumb>
+                                    <BreadcrumbItem>
+                                        @*
+                                            NOTE: This page is used for both the normal app viewing process (/applications/[shortID],
+                                            and the admin app recovery process (/admin/recovery/[shortID])
+                                        *@
+                                        @if (_isSoftDeleted)
+                                        {
+                                            <NavLink href="admin/recovery">@Localizer["RecoverApplications"]</NavLink>
+                                        } else
+                                        {
+                                            <Icon Type="project" />
+                                            <NavLink href="applications">@Localizer["Applications"]</NavLink>
+                                        }
+                                    </BreadcrumbItem>
+                                    <BreadcrumbItem>
+                                        <NavLink href=@($"applications/{_app.ShortID}")>@_app.Identification.Name</NavLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbItem>
+                                        @Localizer["ApplicationSettings"]
+                                    </BreadcrumbItem>
+                                </Breadcrumb>
+                            </PageHeaderBreadcrumb>
+                            <PageHeaderTitle>
+                                <div class="page-header-title">
+                                    @_app.Identification.Name
+                                </div>
+                            </PageHeaderTitle>
+                        </PageHeader>
+
+                        <div>
+                            <Divider Class="divider-header"/>
+                        </div>
+            
+                        <Card Bordered="false">
+                            <p class="content-title">@Localizer["ApplicationSettings"]</p>
+
+                            @* Change app name *@
+                            <div>
+                                <p class="body-subheader">@Localizer["AppSettings.RenameTitle"]</p>
+
+                                @if (_showRenameAlert)
+                                {
+                                    <Alert 
+                                        Type="@(_isValidName ? AlertType.Success : AlertType.Error)"
+                                        MessageTemplate="@_renameAlert"
+                                        ShowIcon="true"
+                                        Style="margin-bottom: 8px;"
+                                    />
+                                
+                                }
+                                <div class="rename-content">
+                                    @{
+                                        // NOTE: A soft-deleted application can have it's name changed by an admin. This is to accomodate for 
+                                        // the case where an admin wants to recover an app but there is already another app with the same name.
+                                        bool show = !_app.IsArchived || _app.IsDeleted;
+                                        <div>
+                                            <Input Placeholder="@Localizer["Application.Identification.Name"]" Disabled="show?false:true" @bind-Value="@_renameInput" class="searchbar" DebounceMilliseconds="500" MaxLength="200" AllowClear/>
+                                        </div>
+                                        <Button Type="primary" Disabled="show && !_isRenaming?false:true" OnClick="show?OnRename:()=>{}" class="rename-button">@Localizer["Rename"]</Button>
+                                    }
+                                </div>
+                            </div>
+
+                            <div>
+                                <Divider Class="divider-body" />
+                            </div>
+
+                            @* Change module settings *@
+                            <div>
+                                <p class="body-subheader">@Localizer["AppSettings.ModulesTitle"]</p>
+                                <ModuleSettings App="_app"></ModuleSettings>
+                            </div>
+
+                            <div>
+                                <Divider Class="divider-body" />
+                            </div>
+
+                            @* Other actions *@
+                            <p class="body-subheader">@Localizer["AppSettings.OtherActionsTitle"]</p>
+                            @* Archive/Unarchive *@
+                            <div class="actions-container basic-container">
+                                <div>
+                                    <p class="actions-title">@(!_app.IsArchived ? Localizer["AppSettings.ArchiveTitle"] : Localizer["AppSettings.UnarchiveTitle"])</p>
+                                    <p class="actions-subtitle">@(!_app.IsArchived ? Localizer["AppSettings.ArchiveSubtitle"] : Localizer["AppSettings.UnarchiveSubtitle"])</p>
+                                </div>
+                                <Button Danger OnClick="@(!_app.IsArchived ? ShowArchiveConfirm : ShowUnarchiveConfirm)" class="temp-red" Disabled="@(_isSoftDeleted ? true : false)">
+                                    @(!_app.IsArchived ? @Localizer["Archive"] : @Localizer["Unarchive"])
+                                </Button>
+                            </div>
+                            @* Delete/Recover *@
+                            <div class="actions-container basic-container">
+                                <div>
+                                    <p class="actions-title">@(!_isSoftDeleted ? Localizer["AppSettings.DeleteTitle"] : Localizer["AppSettings.RecoverTitle"])</p>
+                                    <p class="actions-subtitle">@(!_isSoftDeleted ? Localizer["AppSettings.DeleteSubtitle"] : Localizer["AppSettings.RecoverSubtitle"])</p>
+                                    @if(_isSoftDeleted && _nameExists)
+                                    {
+                                        <p class="actions-subtitle ant-typography ant-typography-warning">@Localizer["AppSettings.Recover.NameChangeRequired"]</p>
+                                    }
+                                </div>
+                                <Button 
+                                    Type="@(_isSoftDeleted ? @ButtonType.Primary : @ButtonType.Default)" 
+                                    Danger="@(_isSoftDeleted ? false : true)" 
+                                    OnClick="@(_isSoftDeleted ? ShowRecoverConfirm : ShowDeleteConfirm)" 
+                                    Disabled="@(_isSoftDeleted ? _nameExists : false)">
+                                    @(_isSoftDeleted ? Localizer["Recover"] : Localizer["Delete"])
+                                </Button>
+                            </div>
+                        </Card>
+                    </Card>
+                }
+                else
+                {
+                    // the user is ReadOnly (note: this page is only accessible by directly typing in the URL)
+                    <Result Status="403"
+                        Title="@Localizer["Unauthorized"]"/>
+                }
+            }
+            else
+            {
+                    if (_isSoftDeleted)
+                    {
+                        // the app is soft-deleted and the user does not have the permission to access the page (not an Admin)
+                        <Result Status="404"
+                                Title=@Localizer["AppDetails.DeletedAppTitle"]
+                                SubTitle=@Localizer["AppDetails.DeletedAppSubtitle"] />
+                    }
+                    else
+                    {
+                        // the app does not exist
+                        <Result Status="404"
+                                Title="@Localizer["404Page.Title"]"
+                                SubTitle="@Localizer["404Page.Subtitle"]" />
+                    }
+            }
+        }
+    </Authorized>
+</AuthorizeView>
+
+
+
+
+@code {
+    [Parameter]
+    public string ShortID { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private Application _app;
+    private User _user;
+
+    private string _renameInput = "";
+    private RenderFragment _renameAlert { get; set; }
+    private bool _isViewable = false;
+    private bool _isSoftDeleted = false;
+    private bool _isLoaded = false;
+    private bool _isRenaming = false;
+    private bool _isValidName = false;
+    private bool _showRenameAlert = false;
+    private bool _nameExists = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        string adId = await _authService.GetUserSID();
+        _user = await _userService.GetUserByAdID(adId);
+        Preferences userPreference = _user.GetPreferences();
+        bool isAdmin = _user.Role.PermissionLevel == (int)RoleEnums.Roles.Admin;
+
+        _app = await _appService.GetApplicationByShortID(ShortID);
+        if (_app != null)
+        {
+            _renameInput = _app.Identification.Name;
+            _isSoftDeleted = _app.IsDeleted;
+
+            if (_isSoftDeleted)
+            {
+                // soft deleted apps can only be accessed by admins
+                if(!isAdmin)
+                { 
+                    _isViewable = false;
+                    _isLoaded = true;
+
+                    return;
+                }
+                _nameExists = IsDuplicateName(_app.Identification.Name);
+            }
+
+            if (_app.IsComplete)
+            {
+                // incomplete apps cannot be viewed
+                _isViewable = true;
+            }
+        }
+        _isLoaded = true;
+    }
+
+    /// <summary>
+    /// Navigate to the current Application's details page.
+    /// </summary>
+    private void OnExit()
+    {
+        MyNavigationManager.NavigateTo(Global.GetAppDetailsURL(_app.ShortID));
+    }
+
+    /// <summary>
+    /// Change the name of the current Application. Validate the name first.
+    /// </summary>
+    private async void OnRename()
+    {
+        _isRenaming = true;
+        StateHasChanged();
+
+        // Validate the new name
+        if (string.IsNullOrWhiteSpace(_renameInput))
+        {
+            _renameAlert = r =>
+            {
+                r.AddContent(1, Localizer["ApplicationNameRequired"]);
+            }; 
+            _isValidName = false;
+        }
+        else if (IsDuplicateName(_renameInput))
+        {
+            string dupAppShortID = _appService.GetApplicationShortIDByName(_renameInput);
+            Application dupApp = await _appService.GetApplicationByShortID(dupAppShortID, new List<ModuleTypeEnum>());
+            if (dupApp != null && dupApp.IsComplete)
+            { 
+                // if there is already another active app with the same name
+                string link = $"<a href=\"{Global.GetAppDetailsURL(_appService.GetApplicationShortIDByName(_renameInput))}\">{_renameInput}</a>";
+                _renameAlert = r =>
+                {
+                    r.AddMarkupContent(1, Localizer["DuplicateAppName", _renameInput, link]);
+                };
+            } 
+            else
+            {
+                // if there is an incomplete app with the same name
+                // TODO: considering that the dupe app likely cannot be accessed by the user (only accessible if the incomplete app is theirs),
+                // do we want to tweak what this alert says? Or maybe we want to move things around so that existing apps get priority on names
+                _renameAlert = r =>
+                {
+                    r.AddMarkupContent(1, Localizer["ApplicationNameTaken"]);
+                };
+
+            }
+            _isValidName = false;
+        }
+        else
+        {
+            // the new name is valid
+            _app.Identification.Name = _renameInput;
+            await _crudService.UpdateAsync(_app.Identification);
+            _renameAlert = r =>
+            {
+                r.AddContent(1, Localizer["AppSettings.NameChangedConfirm"]);
+            };
+            _isValidName = true;
+            _nameExists = false;
+            LayoutState.OnAppRename(_app);
+        }
+
+        _isRenaming = false;
+        _showRenameAlert = true;
+
+        StateHasChanged();
+    }
+
+
+
+    /// <summary>
+    /// Open a confirm modal for deleting the application.
+    /// </summary>
+    private void ShowDeleteConfirm()
+    {
+        // this is a pop-up modal
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = Localizer["AppSettings.DeleteConfirmTitle"],
+            Icon = @<Icon Type="warning" Theme="fill" Style="color:red;"></Icon>,
+            Content = Localizer["AppSettings.DeleteConfirmSubtitle"].ToString(),
+            OkText = Localizer["Delete"].ToString(),
+            Centered = true,
+            OnOk = async (e) =>
+            {
+                // soft-delete the application
+                await _appService.DeleteAsync(_app, false);
+                // NOTE: keep this not await-ed. no need to wait for the message service to do its thing. waiting slows this process down alot
+                _messageService.Success(Localizer["ApplicationsTable.DeleteSuccess", _app.Identification.Name].ToString());
+                // redirect back to the applications table page
+                MyNavigationManager.NavigateTo(Global.GetApplicationsTableURL());
+            },
+            OnCancel = (e) =>
+            {
+                // Do nothing. Just chose the modal
+                return Task.CompletedTask;
+            }
+
+        });
+    }
+
+    /// <summary>
+    /// Open a confirm modal for recovering the application.
+    /// </summary>
+    private void ShowRecoverConfirm()
+    {
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = Localizer["AppSettings.RecoverConfirmTitle"],
+            Icon = @<Icon Type="warning" Theme="fill" Style="color:orange;"></Icon>,
+            Content = Localizer["AppSettings.RecoverConfirmSubtitle"].ToString(),
+            OkText = Localizer["Recover"].ToString(),
+            Centered = true,
+            OnOk = async (e) =>
+            {
+                // recover the application (un-soft-delete it)
+                await _appService.RestoreAsync(_app);
+                _isViewable = true;
+                _isSoftDeleted = false;
+                // NOTE: keep this not await-ed. no need to wait for the message service to do its thing. waiting slows this process down alot
+                _messageService.Success(Localizer["ApplicationsTable.RecoverySuccess", _app.Identification.Name].ToString());
+                StateHasChanged();
+            },
+            OnCancel = (e) =>
+            {
+                // Do nothing. Just chose the modal
+                return Task.CompletedTask;
+            }
+
+        });
+    }
+
+    /// <summary>
+    /// Open a confirm modal for archiving the application.
+    /// </summary>
+    private void ShowArchiveConfirm()
+    {
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = Localizer["AppSettings.ArchiveConfirmTitle"],
+            Icon = @<Icon Type="exclamation-circle" Theme="fill" Style="color:orange;"></Icon>,
+            Content = Localizer["AppSettings.ArchiveConfirmSubtitle"].ToString(),
+            OkText = Localizer["Archive"].ToString(),
+            Centered = true,
+            OnOk = async (e) =>
+            {
+                // archive the application
+                _app.IsArchived = true;
+                await _crudService.UpdateAsync(_app.Identification);
+                // NOTE: keep this not await-ed. no need to wait for the message service to do its thing. waiting slows this process down alot
+                _messageService.Success(Localizer["AppSettings.ArchiveSuccessMessage"].ToString());
+                StateHasChanged();
+            },
+            OnCancel = (e) =>
+            {
+                // Do nothing. Just close the modal
+                return Task.CompletedTask;
+            }
+
+        });
+    }
+
+    /// <summary>
+    /// Open a confirm modal for unarchiving the application.
+    /// </summary>
+    private void ShowUnarchiveConfirm()
+    {
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = Localizer["AppSettings.UnarchiveConfirmTitle"],
+            Icon = @<Icon Type="exclamation-circle" Theme="fill" Style="color:orange;"></Icon>,
+            Content = Localizer["AppSettings.UnarchiveConfirmSubtitle"].ToString(),
+            OkText = Localizer["Unarchive"].ToString(),
+            Centered = true,
+            OnOk = async (e) =>
+            {
+                // Unarchive the application
+                _app.IsArchived = false;
+                await _crudService.UpdateAsync(_app.Identification);
+                // NOTE: keep this not await-ed. no need to wait for the message service to do its thing. waiting slows this process down alot
+                _messageService.Success(Localizer["AppSettings.UnarchiveSuccessMessage"].ToString());
+                StateHasChanged();
+            },
+            OnCancel = (e) =>
+            {
+                // Do nothing. Just close the modal
+                return Task.CompletedTask;
+            }
+
+        });
+    }
+
+    /// <summary>
+    /// Check if the given app name is valid.
+    /// </summary>
+    /// <param name="newName">The new name</param>
+    /// <returns>Whether or not the name is valid</returns>
+    private bool IsDuplicateName(string newName)
+    {
+        return _appService.IsDuplicateName(newName, ignoreId: _app.ApplicationID);
+    }
+
+}

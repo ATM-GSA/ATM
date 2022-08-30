@@ -1,0 +1,89 @@
+﻿@using TABS.Data
+@using TABS.Data.Auth
+@using Microsoft.Extensions.Localization;
+
+<Table TItem="User" DataSource="@NeedsApproval" Context="user" @bind-Total="_total" @bind-PageIndex="_pageIndexApproval" PageSize="_pageSizeApproval" Size="@TableSize.Small">
+    <Column Title="@Localizer["PrimaryName"]" @bind-Field="@user.PrimaryName" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["Name"]" @bind-Field="@user.Name" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["Email"]" @bind-Field="@user.Email" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["RequestDate"]" @bind-Field="@user.RegistrationDate" ShowSorterTooltip="false" Sortable Filterable>@user.RegistrationDate.ToString("yyyy-MM-dd")</Column>
+    <Column Title="@Localizer["ITLevel"]" @bind-Field="@user.ITLevel" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <ActionColumn Title="@Localizer["Role"]">
+        <Dropdown>
+            <Overlay>
+                <Menu>
+                    <MenuItem Class="dropdown-content" OnClick="() => user.Role.PermissionLevel = 1">
+                        <p>@Localizer["ReadOnly"]</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => user.Role.PermissionLevel = 2">
+                        <p>@Localizer["PowerUser"]</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => user.Role.PermissionLevel = 3">
+                        <p>@Localizer["Admin"]</p>
+                    </MenuItem>
+                </Menu>
+            </Overlay>
+            <ChildContent>
+                <Button Size="@ButtonSize.Small" Class="dropdown-button">@((RoleEnums.Roles) user.Role.PermissionLevel) <Icon Class="dropdown-icon" Type="down" /></Button>
+            </ChildContent>
+        </Dropdown>
+    </ActionColumn>
+    <ActionColumn Title="@Localizer["Actions"]">
+        <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" OnClick="@(async () => { await ApproveAsync.InvokeAsync(user); })">@Localizer["Accept"]</Button>
+        <Button Type="@ButtonType.Text" Size="@ButtonSize.Small" Danger OnClick="@(async () => { await DeleteAsync.InvokeAsync(user); })">@Localizer["Deny"]</Button>
+    </ActionColumn>
+</Table>
+
+@{
+    int _totalPages = (int)Math.Ceiling((double)_total / _pageSizeApproval);
+    <p>
+        @Localizer["Page"] @_pageIndexApproval of @_totalPages | @Localizer["ResultsPerPage"]:
+        <SimpleSelect DefaultValue="5" OnSelectedItemChanged="PaginationChange" Style="width: 70px;">
+            <SelectOptions>
+                <SimpleSelectOption Value="1" Label="1"></SimpleSelectOption>
+                <SimpleSelectOption Value="5" Label="5"></SimpleSelectOption>
+                <SimpleSelectOption Value="25" Label="25"></SimpleSelectOption>
+                <SimpleSelectOption Value="100" Label="100"></SimpleSelectOption>
+            </SelectOptions>
+        </SimpleSelect>
+        | @Localizer["TotalResults"]: @_total
+    </p>
+}
+
+@code {
+    [Parameter]
+    public List<User> NeedsApproval { get; set; }
+
+    [Parameter]
+    public int _total { get; set; }
+
+    [Parameter]
+    // Calls the ApproveAsync method in the parent AdminTable component
+    public EventCallback<User> ApproveAsync { get; set; }
+
+    [Parameter]
+    // Calls the DeleteAsync method in the parent AdminTable component
+    public EventCallback<User> DeleteAsync { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    int _pageSizeApproval = 5;
+    int _pageIndexApproval = 1;
+
+    protected override void OnInitialized()
+    {
+        // Temporarily set the user's role to ReadOnly. This will ensure the user does not get approved with the 'NeedsApproval' Role.
+        NeedsApproval.ForEach(u => u.Role.PermissionLevel = 1);
+    }
+
+    /// <summary>
+    /// Change number of rows displayed on each table page
+    /// </summary>
+    /// <param name="number"></param>
+    private void PaginationChange(string number)
+    {
+        _pageSizeApproval = Int32.Parse(number);
+        StateHasChanged();
+    }
+}

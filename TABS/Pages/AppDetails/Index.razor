@@ -1,0 +1,330 @@
+﻿@page "/Applications/{ShortID}"
+@using TABS.Data
+@using TABS.Data.Auth
+@using System;
+@using System.Security.Principal;
+@using System.Linq;
+@using Newtonsoft.Json;
+@inject CrudService CrudService
+@inject UserPreferenceService UserPreferenceService
+@inject ApplicationService ApplicationService
+@inject UserService UserService
+@inject AuthService AuthService
+@inject NavigationManager MyNavigationManager
+@inject TABS.Shared.LayoutState LayoutState
+@inject Global Global
+@*
+    Renders a details page for an Application. Includes views for all modules in an Application as well as just the featured modules of an Application.
+    The collection of all modules can be searched through (NOT YET IMPL). The Application can be favourited, updates for it can be seen (NOT YET IMPL),
+    and admins/power-users can access Application Settings from this page.
+*@
+
+@if (_isLoaded)
+{
+    if (_isApp)
+    {
+        <Card>
+
+            @* Header (project name, favourite, updates, settings buttons) *@
+
+            <PageHeader>
+                <PageHeaderBreadcrumb>
+                    <Breadcrumb>
+                        <BreadcrumbItem>
+                            @if (_app.IsDeleted)
+                            {
+                                <NavLink href="admin/recovery">@Localizer["RecoverApplications"]</NavLink>
+                            } else
+                            {
+                                <Icon Type="project" />
+                                <NavLink href="applications">@Localizer["Applications"]</NavLink>
+                            }
+                        </BreadcrumbItem>
+                        <BreadcrumbItem>
+                            @_app.Identification.Name
+                        </BreadcrumbItem>
+                    </Breadcrumb>
+                </PageHeaderBreadcrumb>
+                <PageHeaderTitle>
+                    <div class="header-title">
+                        @_app.Identification.Name
+                    </div>
+                </PageHeaderTitle>
+                <PageHeaderExtra>
+                    <Tooltip Placement="@Placement.Bottom" Title="@(_isFavourited ? Localizer["AppDetails.UnfavouriteTooltip"].ToString() : @Localizer["AppDetails.FavouriteTooltip"].ToString())">
+                        <Button Type="primary" OnClick="OnFav" Disabled="@(_favouriteButtonDisabled || _app.IsArchived || _app.IsDeleted ? true : false)" Size="@ButtonSize.Small">
+                            <Icon Type="star" Theme="@(_isFavourited ? "fill" : "outline")" />
+                        </Button>
+                    </Tooltip>
+
+                    <Tooltip Placement="@Placement.Bottom" Title="@(_isSubscribed ? Localizer["AppDetails.NoUpdatesTooltip"].ToString() : Localizer["AppDetails.UpdatesTooltip"].ToString())">
+                        <Button OnClick="OnSubscribe" Type="primary" Icon="@(_isSubscribed ? "check" : null)" Size="@ButtonSize.Small" Disabled="@(_subscribeButtonDisabled || _app.IsArchived || _app.IsDeleted ? true : false)">
+                            @if (_isSubscribed) {
+                                @Localizer["Subscribed"]
+                            } else {
+                                @Localizer["Subscribe"]
+                            }
+                        </Button>
+                    </Tooltip>
+
+                    <AuthorizeView>
+                        <Authorized>
+                            @if (context.User.HasClaim("role", "Admin") || context.User.HasClaim("role", "PowerUser"))
+                            {
+                                <Button Type="primary" Icon="setting" OnClick="OnSettingsClick" Size="@ButtonSize.Small">
+                                    @Localizer["Settings"]
+                                </Button>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+                </PageHeaderExtra>
+            </PageHeader>
+
+            <div>
+                <Divider Class="divider-header" />
+            </div>
+
+            @* Body (modules) *@
+
+            <Card Bordered="false">
+                @if (_app.IsDeleted || _app.IsArchived)
+                {
+                <Alert 
+                    Type="@AlertType.Warning" 
+                    Message="@(_app.IsDeleted ? Localizer["AppDetails.DeletedWarning"] : Localizer["AppDetails.ArchivedWarning"])"
+                    ShowIcon = "true"
+                    Style="margin-bottom: 16px;"
+                ></Alert>
+                }
+                @* Featured Modules *@
+                <ModuleSection IsFeature="true" Modules="GetPinned()" UserPreference="_userPreference" App="_app"/>
+
+                <div>
+                    <Divider Class="divider-body" />
+                </div>
+
+                @* All Modules *@
+                <ModuleSection IsFeature="false" Modules="_allModules" UserPreference="_userPreference" App="_app"/>
+                
+            </Card>
+        </Card>
+    }
+    else
+    {
+        if (!_isAppDeleted)
+        {
+            <Result Status="404"
+                    Title="@Localizer["404Page.Title"]"
+                    SubTitle="@Localizer["404Page.Subtitle"]" />
+        }
+        else
+        {
+            <Result Status="404"
+                    Title=@Localizer["AppDetails.DeletedAppTitle"]
+                    SubTitle=@Localizer["AppDetails.DeletedAppSubtitle"] />
+        }
+    }
+}
+else
+{
+    <Card>
+        <CardLoading />
+    </Card>
+}
+
+
+@code {
+    [Parameter]
+    public string ShortID { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    // Maps module names with their corresponding module card information
+    private List<Dictionary<string, object>> _allModules { get; set; } = new List<Dictionary<string, object>>();
+
+    private bool _isFavourited { get; set; }
+    private bool _isSubscribed { get; set; }
+
+    private string _adId;
+    private User _user;
+    private Preferences _userPreference = new Preferences();
+    private Application _app = new Application();
+    private ApplicationProperties _appProp;
+    private bool _isApp = false;
+    private bool _isAppDeleted = false;
+    private bool _isLoaded = false;
+    private bool _isAdmin;
+
+    private bool _favouriteButtonDisabled = false;
+    private bool _subscribeButtonDisabled = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoaded = false;
+        _isApp = false;
+        _allModules.Clear();
+        await LoadApp();
+        _isLoaded = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _adId = await AuthService.GetUserSID();
+        _user = await UserService.GetUserByAdID(_adId);
+        _userPreference = _user.GetPreferences();
+        _isAdmin = _user.Role.PermissionLevel == (int)RoleEnums.Roles.Admin;
+    }
+
+    /// <summary>
+    /// Gets App specified by url from the DB and sets relevant variables.
+    /// </summary>
+    /// <returns></returns>
+    private async Task LoadApp()
+    {
+        _app = await ApplicationService.GetApplicationByShortID(ShortID);
+        if (_app != null)
+        {
+
+            if (!_app.IsComplete)
+            {
+                _isApp = false;
+                return;
+            }
+
+            if (_app.IsDeleted && !_isAdmin)
+            {
+                _isApp = false;
+                _isAppDeleted = true;
+                return;
+            }
+
+            _isApp = true;
+            _appProp = _app.GetApplicationProperties();
+            _isFavourited = _userPreference.favouriteApplications.Contains(_app.ApplicationID);
+
+            ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(_app.ApplicationID, _user.UserID);
+            _isSubscribed = applicationSubscription != null;
+
+            Dictionary<ModuleTypeEnum, Module> moduleObject = _app.GetModules();
+            foreach (ModuleTypeEnum mod in ModuleTypeEnumExtensions.GetDisplayedModules())
+            {
+
+                if (moduleObject.ContainsKey(mod))
+                {
+                    Module module = moduleObject[mod];
+                    List<string> fields = new List<string>();
+
+                    if (module == null)
+                        continue;
+
+                    Dictionary<string, ModuleProperty> modPropNames = module.GetProperties();
+                    List<ModuleProperty> modPropValues = modPropNames.Values.ToList();
+                    foreach (var modProp in modPropValues)
+                    {
+                        fields.Add(Localizer[modPropNames[modProp.Name].LocalizationKey]);
+                    }
+
+                    // Remove "Name" field from AppId module
+                    if (mod == ModuleTypeEnum.ApplicationIdentification)
+                    {
+                        fields.Remove(Localizer["Name"]);
+                    }
+
+                    _allModules.Add(new Dictionary<string, object>{
+                    { "Name", Localizer[module.GetModuleType().ToString()] },
+                    { "RelativeURL", module.GetModuleType().ToString()},
+                    { "LastUpdated", module.LastUpdate },
+                    { "StatusFlags", module.StatusFlags },
+                    { "IsPinned", _appProp.featuredModules.Contains((int)mod) },
+                    { "Fields", fields }});
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Change whether the user has the Application favourited.
+    /// </summary>
+    private async Task<bool> OnFav()
+    {
+        _favouriteButtonDisabled = true;
+        StateHasChanged();
+        if (_userPreference.favouriteApplications.Contains(_app.ApplicationID))
+        {
+            _userPreference.favouriteApplications.Remove(_app.ApplicationID);
+            _isFavourited = false;
+        }
+        else
+        {
+            _userPreference.favouriteApplications.Add(_app.ApplicationID);
+            _isFavourited = true;
+
+            // Automatically subscribe the user to application updates
+            if (!_isSubscribed)
+            {
+                OnSubscribe();
+            }
+        }
+        UserPreferenceService.SetPreferences(_userPreference);
+        await UserPreferenceService.SaveUserPreferences();
+        _favouriteButtonDisabled = false;
+        StateHasChanged();
+
+        LayoutState.OnAppFav(_app);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Add this user to this app's subscribed list
+    /// </summary>
+    private async void OnSubscribe()
+    {
+        _subscribeButtonDisabled = true;
+        StateHasChanged();
+
+        if (!_isSubscribed)
+        {
+            ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(_app.ApplicationID, _user.UserID);
+            if (applicationSubscription == null)
+                await CrudService.InsertAsync<ApplicationSubscription>(new ApplicationSubscription() { ApplicationID = _app.ApplicationID, UserID = _user.UserID });
+        }
+        else
+        {
+            ApplicationSubscription applicationSubscription = await CrudService.GetRecordAsync<ApplicationSubscription>(_app.ApplicationID, _user.UserID);
+            if (applicationSubscription != null)
+                await CrudService.DeleteAsync<ApplicationSubscription>(applicationSubscription);
+        }
+
+        _isSubscribed = !_isSubscribed;
+        _subscribeButtonDisabled = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Retrieves a list of pinned modules for this Application.
+    /// </summary>
+    /// <returns>List of Pinned Modules</returns>
+    private List<Dictionary<string, object>> GetPinned()
+    {
+        var pinned = new List<Dictionary<string, object>>();
+        foreach (Dictionary<string, object> Module in _allModules)
+        {
+            if ((bool)Module["IsPinned"])
+            {
+                pinned.Add(Module);
+            }
+        }
+        return pinned;
+    }
+
+    /// <summary>
+    /// Navigate to the current Application's Settings page.
+    /// </summary>
+    private void OnSettingsClick()
+    {
+        string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+        MyNavigationManager.NavigateTo(relativePath + "/settings");
+    }
+}

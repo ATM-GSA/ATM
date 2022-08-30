@@ -1,0 +1,91 @@
+﻿@using TABS.Data
+@using TABS.Data.Auth
+@using Microsoft.Extensions.Localization;
+
+<div>
+    <Divider />
+    <Row>
+        <Col Span="12"><b>@Localizer["Name"] </b></Col>
+        <Col Span="12">@SelectedUser.Name</Col>
+    </Row>
+    <br />
+    <Row>
+        <Col Span="12"><b>@Localizer["Email"] </b></Col>
+        <Col Span="12">@SelectedUser.Email</Col>
+    </Row>
+    <br />
+    <Row>
+        <Col Span="12"><b>@Localizer["CurrentRole"] </b></Col>
+        <Col Span="12">@_currentRole</Col>
+    </Row>
+    <br />
+    <Row>
+        <Col Span="12"><b>@Localizer["ITLevel"] </b></Col>
+        <Col Span="12">
+        <Dropdown Trigger="@(new Trigger[] { Trigger.Click })">
+            <Overlay>
+                <Menu>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.ITLevel = 1">
+                        <p>1</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.ITLevel = 2">
+                        <p>2</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.ITLevel = 3">
+                        <p>3</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.ITLevel = 4">
+                        <p>4</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.ITLevel = 5">
+                        <p>5</p>
+                    </MenuItem>
+                </Menu>
+            </Overlay>
+            <ChildContent>
+                <Button Class="dropdown-button">@(SelectedUser.ITLevel) <Icon Class="dropdown-icon" Type="down" /></Button>
+            </ChildContent>
+        </Dropdown>
+        </Col>
+    </Row>
+    <br />
+    <Row>
+        <Col Span="12"><b>@Localizer["SelectRole"] </b></Col>
+        <Col Span="12">
+        <Dropdown Trigger="@(new Trigger[] { Trigger.Click })">
+            <Overlay>
+                <Menu>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.Role.PermissionLevel = 1">
+                        <p>@Localizer["ReadOnly"]</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.Role.PermissionLevel = 2">
+                        <p>@Localizer["PowerUser"]</p>
+                    </MenuItem>
+                    <MenuItem Class="dropdown-content" OnClick="() => SelectedUser.Role.PermissionLevel = 3">
+                        <p>@Localizer["Admin"]</p>
+                    </MenuItem>
+                </Menu>
+            </Overlay>
+            <ChildContent>
+                <Button Class="dropdown-button">@Localizer[((RoleEnums.Roles)SelectedUser.Role.PermissionLevel).ToString()] <Icon Class="dropdown-icon" Type="down" /></Button>
+            </ChildContent>
+        </Dropdown>
+        </Col>
+    </Row>
+</div>
+
+@code {
+    [Parameter]
+    public User SelectedUser { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    string _currentRole;
+
+    protected override void OnInitialized()
+    {
+        // Used to display the User's current role.
+        _currentRole = ((RoleEnums.Roles)SelectedUser.Role.PermissionLevel).ToString();
+    }
+}

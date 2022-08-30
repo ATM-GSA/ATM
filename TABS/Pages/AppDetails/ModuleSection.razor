@@ -1,0 +1,133 @@
+﻿@inject UserPreferenceService UserPreferenceService
+
+@*
+    Renders a module section for an AppDetails page. Given modules will be displayed in either Card/Grid view or List View.
+    If the Featured module section is being rendered, only Card view will be an option.
+*@
+
+<div class="modules-template">
+    @if (IsFeature)
+    {
+        <h2 class="featured-title">@Localizer["FeaturedModules"]</h2>
+        @if (Modules.Count == 0)
+        {
+            <Empty Simple Class="placeholder-content">
+                <DescriptionTemplate>@Localizer["AppDetails.EmptyFeaturedModules"]</DescriptionTemplate>
+            </Empty>
+        }
+        else
+        {
+            @*<p class="featured-info-text">
+                <Icon Type="exclamation-circle" Theme="outline" Class="exclamation-circle" />
+                @Localizer["AppDetails.FeaturedModulesHelp"]
+            </p>*@
+            @foreach (Dictionary<string, object> Module in Modules)
+            {
+                <ModuleCard Module="Module" App="@App"/>
+            }
+        }
+    }
+    else
+    {
+        <h2 class="all-mod-title">@Localizer["AllModules"]</h2>
+        <div class="all-mod-body">
+            <Search Placeholder="@Localizer["AppDetails.SearchPlaceholder"]" WrapperStyle="width: 200px;" ClassicSearchIcon OnChange="OnInputChange" @bind-Value="_searchTerm" DebounceMilliseconds="500" MaxLength="100"/>
+            @if (!_isSearching)
+            {
+                @if (UserPreference.gridView)
+                {
+                    <Tooltip Placement="@Placement.Left" Title="@Localizer["AppDetails.GridViewTooltip"].ToString()" Class="tooltip-right">
+                        <Button @onclick="OnViewSwitch" class="view-switch-button">
+                            <Icon Type="unordered-list" Theme="outline" />
+                        </Button>
+                    </Tooltip>
+                }
+                else
+                {
+                    <Tooltip Placement="@Placement.Left" Title="@Localizer["AppDetails.ListViewTooltip"].ToString()" Class="tooltip-right">
+                        <Button @onclick="OnViewSwitch" class="view-switch-button">
+                            <Icon Type="appstore" Theme="fill" />
+                        </Button>
+                    </Tooltip>
+                }
+            }
+        </div>
+
+        @if (Modules.Count == 0)
+        {
+            @* This likely will never happen (unless there is a change to the schema), but it's here just in case. *@
+            <Empty Simple Class="placeholder-content">
+                <DescriptionTemplate>@Localizer["AppDetails.EmptyAllModules"]</DescriptionTemplate>
+            </Empty>
+        }
+        else
+        {
+            @if (_isSearching)
+            {
+                <SearchResults SearchTerm="@_searchTerm" App="App"></SearchResults>
+            }
+            else
+            {
+                @if (UserPreference.gridView)
+                {
+                    @foreach (Dictionary<string, object> Module in Modules)
+                    {
+                        <ModuleCard Module="Module" App="@App"/>
+                    }
+                }
+                else
+                {
+                    <ModuleList Modules="Modules" App="@App"/>
+                }
+            }
+
+        }
+    }
+
+</div>
+
+@code {
+    [Parameter]
+    public bool IsFeature { get; set; }
+
+    [Parameter]
+    public List<Dictionary<string, object>> Modules { get; set; }
+
+    [Parameter]
+    public Preferences UserPreference { get; set; }
+
+    [Parameter]
+    public Application App { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private bool _isSearching = false;
+    private string _searchTerm = "";
+
+    /// <summary>
+    /// Change the user's grid/list view preference.
+    /// </summary>
+    private async Task<bool> OnViewSwitch()
+    {
+        UserPreference.gridView = !UserPreference.gridView;
+        UserPreferenceService.SetPreferences(UserPreference);
+        await UserPreferenceService.SaveUserPreferences();
+        return true;
+    }
+
+    /// <summary>
+    /// Called when the search bar value changes.
+    /// </summary>
+    private void OnInputChange()
+    {
+        if (String.IsNullOrEmpty(_searchTerm) || _searchTerm.Trim() == "" )
+        {
+            _isSearching = false;
+        } else
+        {
+            _isSearching = true;
+        }
+    }
+
+}

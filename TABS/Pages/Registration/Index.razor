@@ -1,0 +1,102 @@
+﻿@page "/registration"
+@using TABS.Data;
+@using Newtonsoft.Json
+
+@inject CrudService _crudService
+@inject UserService _userService
+@inject AuthService _authService
+@inject NavigationManager _navManager
+@inject IStringLocalizer<App> Localizer
+
+<div class="ant-card-bordered ant-card" style="width: 100%; max-width: 600px; padding: 2rem; box-shadow: 0px 3px 6px -4px rgba(0, 0, 0, 0.12), 0px 6px 16px rgba(0, 0, 0, 0.08), 0px 9px 28px 8px rgba(0, 0, 0, 0.05);">
+    @if (!_isLoaded || (!isAwaitingApproval && !isDeactivated))
+    {
+        <div class="center">
+            <Spin Tip="@Localizer["Loading"]" />
+        </div>
+    }
+    else if (!isUser)
+    {
+        <div>
+            <h3 style="color: #33495D; padding-bottom: 6px; border-bottom: 1px solid #DFDFDF;">Registration / Enregistrement</h3>
+            <br />
+            <RegistrationForm />
+        </div>
+    }
+    else if (isDeactivated)
+    {
+        <Result Status="error"
+                Title="@Localizer["Registration.DeactivatedMessage"]"
+                SubTitle="@($"{Localizer["Registration.DeactivatedDescription"]}")">
+        </Result>
+    }
+    else if (isAwaitingApproval)
+    {
+        <Result Icon="clock-circle-outline"
+                Title="@Localizer["Registration.PendingApproval"]"
+                SubTitle="@(Localizer["Registration.PendingDescription"])">
+            <div>
+                <div>
+                    <Paragraph>
+                        <Text Strong Style="font-size: 16px;">
+                            @Localizer["Registration.AccountInfo"]
+                        </Text>
+                    </Paragraph>
+                    <Paragraph>
+                        @Localizer["Registration.SubmissionDate"] : @_currUser.RegistrationDate
+                    </Paragraph>
+                    <Paragraph>
+                        @Localizer["Email"] : @_currUser.Email
+                    </Paragraph>
+                </div>
+                <div style="color: #8d8d8d; margin-top: 16px; font-size: 11px;">
+                    @Localizer["Registration.FurtherInquiries"]
+                </div>
+            </div>
+        </Result>
+    }
+</div>
+
+
+
+@code {
+
+    private bool _isLoaded = false;
+    private bool isAwaitingApproval = true;
+    private bool isUser = false;
+    private bool isDeactivated = false;
+    private User _currUser = new User();
+
+    protected async override Task OnInitializedAsync()
+    {
+        // check if current user's AD id is in the user table,
+        // if they are awaiting approval and if
+        // their account has been deactivated
+
+        var AdID = await _authService.GetUserSID();
+        _currUser = await _userService.GetUserByAdID(AdID);
+        if (_currUser != null)
+        {
+            isUser = true;
+            isAwaitingApproval = !_currUser.Approved;
+            isDeactivated = _currUser.IsDeactivated;
+        }
+        else
+        {
+            isUser = false;
+        }
+
+        _isLoaded = true;
+        StateHasChanged();
+
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (_isLoaded && isUser && !isAwaitingApproval && !isDeactivated)
+        {
+            _navManager.NavigateTo("");
+        }
+    }
+
+}

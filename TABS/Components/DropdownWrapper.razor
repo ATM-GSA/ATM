@@ -1,0 +1,112 @@
+﻿@using AntDesign
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<Dropdown Trigger="@(new Trigger[] { })" 
+    Placement=@Placement
+    OnClick="() => ToggleDropdown()" 
+    Visible="_dropdownHasBeenOpened"
+    OverlayClassName=@(OverlayClassName + $" {Id}")
+    Class=@Class
+    OverlayStyle=@OverlayStyle 
+    Style=@Style
+>
+    <Overlay>
+        @OverlayContent
+    </Overlay>
+    <ChildContent>
+        @ChildContent
+    </ChildContent>
+</Dropdown>
+
+@code {
+    [Parameter]
+    public RenderFragment OverlayContent { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Class { get; set; }
+
+    [Parameter]
+    public string OverlayClassName { get; set; }
+
+    [Parameter]
+    public string Style { get; set; }
+
+    [Parameter]
+    public string OverlayStyle { get; set; }
+
+    [Parameter]
+    public string Id { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter]
+    public AntDesign.Placement Placement { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClick { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnBeforeDropdownDisplayIsToggled { get; set; }
+
+    //[Parameter]
+    //public EventCallback OnDropdownClose { get; set; }
+
+    private bool _dropdownHasBeenOpened = false;
+
+    private IJSObjectReference? module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", 
+                "./scripts/scripts.js");
+        }
+    }
+
+    public async ValueTask<bool?> toggleDropdownDisplay() =>
+    module is not null ? 
+        await module.InvokeAsync<bool>("toggleDropdown", Id) : null;
+
+    public async ValueTask<string?> closeDropdowns() =>
+    module is not null ? 
+        await module.InvokeAsync<string>("closeAllDropdowns") : null;
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (module is not null)
+        {
+            await module.DisposeAsync();
+        }
+    }
+
+    private async Task ToggleDropdown()
+    {
+        if (!_dropdownHasBeenOpened) {
+            await closeDropdowns();
+            await OnClick.InvokeAsync(true);
+            _dropdownHasBeenOpened = true;
+            //Console.WriteLine("Drop down has been closed status: ");
+            //Console.WriteLine(_dropdownHasBeenOpened);
+
+        } 
+        else
+        {
+            await OnBeforeDropdownDisplayIsToggled.InvokeAsync();
+            await Task.Delay(200); // add a delay to ensure that changes are reflected from line above 
+            // before displaying/closing the dropdown
+            var open = await toggleDropdownDisplay();
+            if (open != null)
+            {
+                await OnClick.InvokeAsync((bool)open);
+            }
+            //Console.WriteLine("Drop down has been closed status: ");
+            //Console.WriteLine(_dropdownHasBeenOpened);
+        }
+    }
+}

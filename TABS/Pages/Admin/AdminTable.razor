@@ -1,0 +1,479 @@
+﻿@page "/admin/usermanagement"
+@using Microsoft.Extensions.Configuration
+@using TABS.Data
+@using TABS.Data.Auth
+@using TABS.Components
+@using System.Security.Principal;
+@using Microsoft.Extensions.Localization;
+@using System.Linq.Expressions
+
+@inject CrudService _crudService;
+@inject UserService _userService;
+@inject EmailService _emailService;
+@inject AuthService _authService;
+@inject NavigationManager MyNavigationManager
+@inject MessageService message
+@inject AntDesign.ModalService _modal;
+@inject TABS.Shared.LayoutState LayoutState
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.HasClaim("role", "Admin"))
+        {
+            <div class="ant-card ant-card-bordered ant-card-body">
+                <PageHeader Title="@Localizer["AdminPanel"]">
+                    <PageHeaderBreadcrumb>
+                        <Breadcrumb>
+                            <BreadcrumbItem>
+                                <NavLink href="admin"><Icon Type="arrow-left" Theme="outline" /> @Localizer["AdminPanel"]</NavLink>
+                            </BreadcrumbItem>
+                        </Breadcrumb>
+                    </PageHeaderBreadcrumb>
+                </PageHeader>
+                @if (_isLoaded)
+                {
+                    <div class="ant-card ant-card-body">
+                        <Tabs Size="@TabSize.Small" Animated="true">
+                            <TabPane Key="users" Tab="@Localizer["UserManagement"]" ForceRender="true">
+                                @{
+                                    <TableSearchBar OriginalList="_originalApprovedUsers" DataSourceList="_approvedUsers" OnSearch="DoesUserContainValue" SendList="@GetFilteredList" T="User"></TableSearchBar>
+                                    <br />
+                                    <br />
+                                    <Table TItem="User" DataSource="@_approvedUsers" Context="user" @bind-Total="_total" @bind-PageIndex="_pageIndex" PageSize="_pageSize" Size="@TableSize.Small">
+                                        <Column Title="@Localizer["Name"]" @bind-Field="@user.Name" ShowSorterTooltip="false" Sortable></Column>
+                                        <Column Title="@Localizer["Email"]" @bind-Field="@user.Email" ShowSorterTooltip="false" Sortable></Column>
+                                        <Column Title="@Localizer["ITLevel"]" @bind-Field="@user.ITLevel" ShowSorterTooltip="false" Sortable Filterable></Column>
+                                        <Column Title="@Localizer["Role"]" TData="int" DataIndex="Role.PermissionLevel" ShowSorterTooltip="false" SortDirections="new[] {SortDirection.Descending, SortDirection.Ascending}" Filterable>
+                                            @if (user.Role.PermissionLevel == 3)
+                                            {
+                                                <Tag Color="green">@Localizer["Admin"]</Tag>
+                                            }
+                                            else if (user.Role.PermissionLevel == 2)
+                                            {
+                                                <Tag Color="geekblue">@Localizer["PowerUser"]</Tag>
+                                            }
+                                            else if (user.Role.PermissionLevel == 1)
+                                            {
+                                                <Tag Color="purple">@Localizer["ReadOnly"]</Tag>
+                                            }
+                                        </Column>
+                                        <ActionColumn Title="@Localizer["Actions"]">
+
+                                            <Button Type="@ButtonType.Link" Size="@ButtonSize.Small" OnClick="@(() => OpenModifyUser(user))">@Localizer["ModifyUser"]</Button>
+
+                                            <Button Type="@(user.IsDeactivated ? @ButtonType.Link : @ButtonType.Text)" Size="@ButtonSize.Small" Danger="!user.IsDeactivated" OnClick="@(async () =>{ user.IsDeactivated = true; await ActivateAsync(user);})" Disabled="user.IsDeactivated">
+                                                @(user.IsDeactivated ? @Localizer["Reactivate"] : @Localizer["Deactivate"])
+                                            </Button>
+                                            @if (user.Role.PermissionLevel == 3)
+                                            {
+                                                <Button Size="@ButtonSize.Small" Type="@ButtonType.Text" Danger Disabled>@Localizer["Delete"]</Button>
+                                                <Popover Content="@Localizer["UserManagement.AdminNoDelete"]" Trigger="@(new AntDesign.Trigger[] { AntDesign.Trigger.Click })">
+                                                    <Button Icon="@IconType.Outline.InfoCircle" Type="@ButtonType.Text" Size="@ButtonSize.Small" Style="color: #8F8F8F" />
+                                                </Popover>
+                                            }
+                                            else
+                                            {
+                                                <Button Size="@ButtonSize.Small" Type="@ButtonType.Text" Danger OnClick="@(() => ShowDeleteConfirm(user))">@Localizer["Delete"]</Button>
+                                            }
+                                        </ActionColumn>
+                                    </Table>
+
+                                    int _totalPages = (int)Math.Ceiling((double)_total / _pageSize);
+                                    <p>
+                                        @Localizer["Page"] @_pageIndex of @_totalPages | @Localizer["ResultsPerPage"]:
+                                        <SimpleSelect DefaultValue="5" OnSelectedItemChanged="PaginationChange" Style="width: 70px;">
+                                            <SelectOptions>
+                                                <SimpleSelectOption Value="1" Label="1"></SimpleSelectOption>
+                                                <SimpleSelectOption Value="5" Label="5"></SimpleSelectOption>
+                                                <SimpleSelectOption Value="25" Label="25"></SimpleSelectOption>
+                                                <SimpleSelectOption Value="100" Label="100"></SimpleSelectOption>
+                                            </SelectOptions>
+                                        </SimpleSelect>
+                                        | @Localizer["TotalResults"]: @_total
+                                    </p>
+                                }
+                            </TabPane>
+                            <CascadingValue Value="@_needsApproval.Count" Name="TabCount">
+                                <TabPane Key="reg" ForceRender="true">
+                                    <TabTemplate>
+                                        <TabLabelWithBadge Label="@Localizer["Registrations"]" />
+                                    </TabTemplate>
+                                    <ChildContent>
+                                        <ApprovalList NeedsApproval=_needsApproval ApproveAsync=ApproveAsync DeleteAsync=ShowDeleteConfirm _total="@_needsApproval.Count()" />
+                                    </ChildContent>
+                                </TabPane>
+                            </CascadingValue>
+                            <CascadingValue Value="@_deactivatedUsers.Count" Name="TabCount">
+                                <TabPane Key="deac" ForceRender="true">
+                                    <TabTemplate>
+                                        <TabLabelWithBadge Label="@Localizer["DeactivatedUsers"]" />
+                                    </TabTemplate>
+                                    <ChildContent>
+                                        <DeactivatedList DeactivatedUsers=_deactivatedUsers ActivateAsync=ActivateAsync ShowDeleteConfirm=ShowDeleteConfirm _total="@_deactivatedUsers.Count()" />
+                                    </ChildContent>
+                                </TabPane>
+                            </CascadingValue>
+                        </Tabs>
+                    </div>
+                }
+                else
+                {
+                    <div class="center" style="min-height: 200px;">
+                        <Spin Tip="@Localizer["Loading"]" />
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <Result Status="403"
+                        Title="@Localizer["Unauthorized"]"/>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <h1>@Localizer["NotAuthorized"]</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+
+    // Inject the configuration to pull the ENV_URL
+    [Inject]
+    private IConfiguration configuration { get; set; }
+
+    List<User> _approvedUsers;
+    List<User> _needsApproval;
+    List<User> _deactivatedUsers;
+    List<User> _originalApprovedUsers;
+    List<User> _admins;
+
+    private User _admin;
+    private ConfirmRef _confirmRef;
+
+    private bool _isLoaded = false;
+    private int _total = 0;
+    int _pageSize = 5;
+    int _pageIndex = 1;
+
+    //int test_var = 0;
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoaded = false;
+
+        await UpdateUsers();
+
+        _isLoaded = true;
+    }
+
+    private async Task UpdateUsers()
+    {
+        // Load all user lists so EF Core can re-track them after changes
+
+        _approvedUsers = await _userService.GetApprovedUsers();
+        _needsApproval = await _userService.GetNeedsApproval();
+        _deactivatedUsers = await _userService.GetDeactivatedUsers();
+        _admins = _approvedUsers.Where(u => u.Role.PermissionLevel == 3).ToList();
+        // Retrieve the authenticated Admin's User record
+        var AdID = await _authService.GetUserSID();
+        _admin = await _userService.GetUserByAdID(AdID);
+
+        _approvedUsers.Remove(_approvedUsers.FirstOrDefault(u => u.UserID == _admin.UserID));
+        _originalApprovedUsers = new List<User>(_approvedUsers);
+
+        _total = _approvedUsers.Count();
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Used to deactivate/reactivate a User's access to the application.
+    /// </summary>
+    /// <param name="user"> User to be deactivated/reactivated</param>
+    /// <returns>bool</returns>
+    private async Task ActivateAsync(User user)
+    {
+        bool isDeleted = await CheckUserDeleted(user);
+
+        if (!isDeleted)
+        {
+            if (user.IsDeactivated)
+            {
+                if (!_deactivatedUsers.Contains(user))
+                {
+                    _approvedUsers.Remove(user);
+                    _deactivatedUsers.Add(user);
+                    _total = _approvedUsers.Count();
+                    await _userService.DeactivateUser(user, _admin);
+                }
+            }
+            else
+            {
+                if (!_approvedUsers.Contains(user))
+                {
+                    _deactivatedUsers.Remove(user);
+                    _approvedUsers.Add(user);
+                    _total = _deactivatedUsers.Count();
+                    await _userService.ActivateUser(user, _admin);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Method called from the ApprovalList component. Approves a User's registration request.
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns>bool</returns>
+    async Task ApproveAsync(User user)
+    {
+        bool isDeleted = await CheckUserDeleted(user);
+        bool isApproved = await CheckUserApproved(user);
+
+        if (!_approvedUsers.Exists(u => u.UserID == user.UserID) && !isDeleted && !isApproved)
+        {
+            _needsApproval.RemoveAll(u => u.UserID == user.UserID);
+            _approvedUsers.Add(user);
+            _total = _approvedUsers.Count();
+            LayoutState.DecreaseRegistrationCount();
+            await _userService.ApproveUser(user, _admin);
+            try
+            {
+                // Send approval email to user
+                await _emailService.SendTemplatedEmail(user.Email, "Approval", new
+                {
+                    Name = user.Name,
+                    Role = user.Role.PermissionLevel, // the email template will localize this
+                    Env = configuration["ENV_URL"] // pull the env url from app settings
+                });
+            }
+            catch
+            {
+                message.Error(Localizer["Admin.EmailError", user.Email].ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes a User record. Used by the ApprovalList component to deny registration requests.
+    /// </summary>
+    /// <param name="user">User to be deleted.</param>
+    /// <returns>bool</returns>
+    private async Task DeleteAsync(User user)
+    {
+        bool isDeleted = await CheckUserDeleted(user);
+        bool isApproved = await CheckUserApproved(user);
+
+        if (!isDeleted)
+        {
+            if (_needsApproval.Exists(u => u.UserID == user.UserID) && !isApproved)
+            {
+                _needsApproval.RemoveAll(u => u.UserID == user.UserID);
+                _total = _needsApproval.Count();
+                LayoutState.DecreaseRegistrationCount();
+                StateHasChanged();
+
+                // Send denied email to user if they haven't been approved yet
+                try
+                {
+                    await _emailService.SendTemplatedEmail(user.Email, "Denied", new { Name = user.Name });
+                }
+                catch
+                {
+                    message.Error(Localizer["Admin.EmailError", user.Email].ToString());
+                }
+            }
+            await _userService.DeleteUser(user, _admin);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a user is deleted or not.
+    /// </summary>
+    /// <param name="user">User to be checked.</param>
+    /// <returns>bool</returns>
+    private async Task<bool> CheckUserDeleted(User user)
+    {
+        User updatedUser = await _crudService.GetRecordAsync<User>(user.UserID);
+        if (updatedUser == null) {
+            message.Warning(Localizer["Admin.UserDeleted"].ToString());
+            if (_needsApproval.RemoveAll(u => u.UserID == user.UserID) > 0)
+            {
+                LayoutState.DecreaseRegistrationCount();
+            }
+            _deactivatedUsers.RemoveAll(u => u.UserID == user.UserID);
+            _approvedUsers.RemoveAll(u => u.UserID == user.UserID);
+            _originalApprovedUsers.RemoveAll(u => u.UserID == user.UserID);
+            _admins.RemoveAll(u => u.UserID == user.UserID);
+            _total = _approvedUsers.Count();
+            StateHasChanged();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Checks if a user's registration has already been approved.
+    /// </summary>
+    /// <param name="user">User to be checked.</param>
+    /// <returns>bool</returns>
+    private async Task<bool> CheckUserApproved(User user)
+    {
+        User updatedUser = await _crudService.GetRecordAsync<User>(user.UserID);
+        if (updatedUser != null && updatedUser.Approved) {
+            if ( _needsApproval.RemoveAll(u => u.UserID == user.UserID) > 0)
+            {
+                message.Warning(Localizer["Admin.UserApproved"].ToString());
+                LayoutState.DecreaseRegistrationCount();
+            }
+            _deactivatedUsers.RemoveAll(u => u.UserID == user.UserID);
+            _approvedUsers.RemoveAll(u => u.UserID == user.UserID);
+            _total = _approvedUsers.Count();
+            StateHasChanged();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Return true if an app contains a specified search value in any of its columns
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public Task<bool> DoesUserContainValue(User user, string value)
+    {
+        return Task.FromResult(user.Name.ToLower().Contains(value)
+                               || user.ITLevel.ToString().Contains(value)
+                               || user.Approved.ToString().Contains(value)
+                               || user.Role.PermissionLevel.ToString().Contains(value)
+                               || user.Email.Contains(value));
+
+    }
+
+    /// <summary>
+    /// Update the total and table datasource based on the search results
+    /// </summary>
+    /// <param name="list"></param>
+    private void GetFilteredList(List<User> list)
+    {
+        _approvedUsers = list.ToList();
+        _total = _approvedUsers.Count;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Change number of rows displayed on each table page
+    /// </summary>
+    /// <param name="number"></param>
+    private void PaginationChange(string number)
+    {
+        _pageSize = Int32.Parse(number);
+        StateHasChanged();
+    }
+
+    #region Modal Code
+
+    /// <summary>
+    /// Display's a delete confirmation modal
+    /// </summary>
+    /// <param name="user">User to be deleted.</param>
+    /// <returns>bool</returns>
+    private async Task ShowDeleteConfirm(User user)
+    {
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = String.Format(Localizer["UserManagement.DeleteConfirmation"], user.Name),
+            Icon =
+    @<Icon Type="exclamation-circle" Theme="outline"></Icon>
+    ,
+            Centered = true,
+            OnOk = async e =>
+            {
+                User userToUpdate = user;
+
+                // use the user service here because we want the role too
+                User updatedUser = await _userService.GetUserByUserID(user.UserID);
+                bool isAdmin = updatedUser.Role.PermissionLevel == (int)RoleEnums.Roles.Admin;
+                if (isAdmin) {
+                    message.Warning(Localizer["UserManagement.AdminNoDelete"].ToString());
+                    await UpdateUsers();
+                    return;
+                }
+
+                await DeleteAsync(user);
+                await UpdateUsers();
+            },
+            OnCancel = e =>
+            {
+            return Task.CompletedTask;
+            },
+            OkType = "danger",
+            });
+    }
+
+    /// <summary>
+    /// Displays the ModifyUser component in a modal.
+    /// </summary>
+    /// <param name="user">User to be modified</param>
+    /// <returns>bool</returns>
+    private async Task OpenModifyUser(User user)
+    {
+        RenderFragment content =@<ModifyUser SelectedUser=user />;
+        int originalPermission = user.Role.PermissionLevel;
+        var options = new ConfirmOptions()
+        {
+            Title = Localizer["ModifyUser"],
+            Width = 500,
+            Content = content,
+            Centered = true,
+            OnOk = async e =>{
+
+                User userToUpdate = user;
+
+                // user has already been deleted
+                bool deleted = await CheckUserDeleted(user);
+                if (deleted) {
+                    return;
+                }
+
+                // use the user service here because we want the role too
+                User updatedUser = await _userService.GetUserByUserID(user.UserID);
+                bool deactivated = updatedUser.IsDeactivated;
+                if (deactivated) {
+                    // overwrite the role to read only in case it was changed
+                    message.Warning(Localizer["Admin.UserDeactivated"].ToString());
+                    updatedUser.Role.PermissionLevel = (int)RoleEnums.Roles.ReadOnly;
+                    userToUpdate = updatedUser;
+                }
+
+                await _crudService.UpdateAsync(userToUpdate);
+                await UpdateUsers();
+            },
+            OnCancel = e =>
+            {
+                user.Role.PermissionLevel = originalPermission;
+                return Task.CompletedTask;
+            }
+        };
+
+        _confirmRef = await _modal.CreateConfirmAsync(options);
+
+        _confirmRef.OnOpen = () =>
+        {
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+
+        _confirmRef.OnClose = () =>
+        {
+            StateHasChanged();
+            return Task.CompletedTask;
+        };
+    }
+
+#endregion
+}

@@ -1,0 +1,80 @@
+﻿@using TABS.Shared.ModuleTables
+@using TABS.Data
+
+<CascadingValue Name="IsReadOnly" Value="@IsReadOnly">
+    <CascadingValue Name="IsInEditMode" Value="@(IsInEditMode && !IsReadOnly)">
+        <CascadingValue Name="IsDisabled" Value="@(!IsInEditMode || IsReadOnly)">
+            <CascadingValue Name="ShowTitle" Value="@ShowModuleTitle">
+                <CascadingValue Name="IsLoading" Value="@IsLoading">
+                        @Components[typeKey]
+                </CascadingValue>
+            </CascadingValue>
+        </CascadingValue>
+    </CascadingValue>
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public ModuleTypeEnum typeKey { get; set; }
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    [Parameter]
+    public bool IsReadOnly { get; set; } = false;
+
+    [Parameter]
+    public bool IsInEditMode { get; set; } = true;
+
+    [Parameter]
+    public bool IsLoading { get; set; } = false;
+
+    [Parameter]
+    public bool ShowModuleTitle { get; set; } = false;
+
+    [Parameter]
+    public bool UseErrorBoundary { get; set; } = true;
+
+    private IModuleTable _module;
+
+    private Dictionary<ModuleTypeEnum, RenderFragment> Components = new Dictionary<ModuleTypeEnum, RenderFragment>();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        Components.Add(ModuleTypeEnum.ApplicationIdentification,@<AppIdModule @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.Architecture, @<ArchitectureTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.Security, @<SecurityTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.BASMOnboarding, @<BASMOnboardingTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.Contacts, @<ContactsTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.ServerEnvironment, @<ServerEnvTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.DatabaseEnvironment, @<DatabaseEnvTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.Report, @<ReportTable @bind-ApplicationObj="@ApplicationObj" @ref="_module" />);
+        Components.Add(ModuleTypeEnum.Dependencies, @<DependencyTable @bind-ApplicationObj="@ApplicationObj" />);
+    }
+
+    public async Task<bool> saveChanges()
+    {
+        if (_module == null) return true;
+
+        bool isModified = await _module.saveChanges();
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+        return isModified;
+    }
+
+    public bool hasErrors()
+    {
+        return _module == null ? false : _module.hasErrors();
+    }
+
+    public void reset()
+    {
+        if (_module != null) _module.reset();
+    }
+
+}

@@ -1,0 +1,15 @@
+﻿.container {
+    width: 100%;
+}
+
+::deep .list {
+    margin: 10px 0px 40px 0px;
+}
+
+.search-results-header {
+    margin: 12px 0px 0px 0px;
+}
+
+.divider {
+    margin: 12px 0px;
+}

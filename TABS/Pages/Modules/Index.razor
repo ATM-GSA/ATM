@@ -1,0 +1,404 @@
+﻿@page "/Applications/{AppShortID}/{ModuleName}"
+@using System;
+@using System.Net;
+@using Microsoft.EntityFrameworkCore;
+@using System.Threading
+@using TABS.Data;
+@using System.Text.Json
+@using System.Text.Json.Serialization
+@using Newtonsoft.Json
+@using Microsoft.AspNetCore.SignalR.Client;
+@using Microsoft.Extensions.Configuration;
+@using Microsoft.Extensions.Logging.Console;
+@using Microsoft.Extensions.Logging
+
+@inject NavigationManager NavigationManager
+@inject IConfiguration _config
+@inject ApplicationService AppService
+@inject NavigationManager NavManager
+@inject AuthService AuthService
+@inject UserService UserService
+@inject NotificationsService NotificationsService
+@inject CrudService CrudService
+@inject MessageService _message
+@inject Global Global
+@inject IStringLocalizer<App> Localizer
+
+
+@if (!_isLoaded)
+{
+    <Card>
+        <CardLoading />
+    </Card>
+}
+else
+{
+    @if (!_isValidPage)
+    {
+        <Result Status="404"
+                Title="@Localizer["404Page.Title"]"
+                SubTitle="@Localizer["404Page.Subtitle"]">
+           <Extra>
+                <NavLink href="applications">
+                    <Button>@Localizer["ModulePage.ReturnToApplications"]</Button>
+                </NavLink>
+            </Extra>
+         </Result>
+    }
+    else if (_app.IsDeleted && !_isAdmin)
+    {
+        <Result Status="403"
+                Title="@Localizer["ModulePage.AppDeletedUnauthorized.Title"]"
+                SubTitle="@Localizer["ModulePage.AppDeletedUnauthorized.Desc"]">
+            <Extra>
+                <NavLink href="applications">
+                    <Button>@Localizer["ModulePage.ReturnToApplications"]</Button>
+                </NavLink>
+            </Extra>
+         </Result>
+    }
+    else
+    {
+        <div class="ant-card ant-card-bordered ant-card-body" style="min-width: 750px;">
+            <PageHeader Ghost="true" BackIcon="true" OnBack="navigateToApp" Title="@Localizer[_tableType.ToString()]">
+                <PageHeaderBreadcrumb>
+                    <Breadcrumb>
+                        <BreadcrumbItem>
+                             @if (_app.IsDeleted)
+                            {
+                                <NavLink href="admin/recovery">@Localizer["RecoverApplications"]</NavLink>
+                            } else
+                            {
+                                <Icon Type="project" />
+                                <NavLink href="applications">@Localizer["Applications"]</NavLink>
+                            }
+                        </BreadcrumbItem>
+                        <BreadcrumbItem>
+                            <NavLink href="@($"applications/{_app.ShortID}")">@_app.Identification.Name</NavLink>
+                        </BreadcrumbItem>
+                        <BreadcrumbItem>
+                            @Localizer[_tableType.ToString()]
+                        </BreadcrumbItem>
+                    </Breadcrumb>
+                </PageHeaderBreadcrumb>
+                <PageHeaderContent>
+                    <ModuleMetadata @ref="ModuleMetadata" TypeKey="@_tableType" ApplicationObj="@_app" IsDisabled="@(_app.IsArchived || _isReadOnly || _app.IsDeleted)" />
+                </PageHeaderContent>
+            </PageHeader>
+            <Divider Style="margin:8px 0px 8px 0px" />
+            <div style="margin-bottom: 8px;">
+                @if (_isReadOnly || _app.IsArchived || _app.IsDeleted)
+                {
+                    <Tag Icon="eye" Color="default" Style="margin-bottom: 8px">@Localizer["ReadOnly"]</Tag>
+                }
+
+                @if (_app.IsDeleted)
+                {
+                    <Alert Message="@Localizer["ModulePage.AppDeleted"]" Type="@AlertType.Warning" />
+                }
+                else if (_app.IsArchived)
+                {
+                    <Alert Message="@Localizer["ModulePage.AppArchived"]" Type="@AlertType.Warning" />
+                }
+                else if (_hasHubError && !_isReadOnly)
+                {
+                    <Alert Type="@AlertType.Warning" Closable=true
+                            Message="@Localizer["ModulePage.HubErrorAlert"]"/>
+                }
+
+            </div>
+            @*For debugging:*@
+            @*<Alert Type="@AlertType.Info">
+                    @SerializeIgnoringReferences(_app)
+                </Alert>*@
+            <ModuleContent @bind-ApplicationObj="@_app" _moduleType="@_tableType" OnApplicationSaved="handleApplicationSaved" />
+        </div>
+    }
+}
+
+
+@code {
+
+    [Parameter]
+    public string AppShortID { get; set; }
+
+    [Parameter]
+    public string ModuleName { get; set; }
+
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    [CascadingParameter(Name = "IsReadOnlyUser")]
+    private bool _isReadOnly { get; set; }
+
+    [CascadingParameter(Name = "IsAdmin")]
+    private bool _isAdmin { get; set; }
+
+    private ModuleMetadata ModuleMetadata { get; set; }
+    private User _user;
+
+    private Application _app;
+    private ModuleTypeEnum _tableType;
+
+    private bool _isValidPage = false;
+    private bool _isLoaded = false;
+    private bool _hasHubError = false;
+
+    private HubConnection _hubConnection;
+    private string _hubUrl;
+
+    internal class LoggingHandler : HttpClientHandler
+    {
+        public LoggingHandler()
+        {
+            base.UseDefaultCredentials = true;
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Console.WriteLine("Request:");
+            Console.WriteLine(request.ToString());
+            if (request.Content != null)
+            {
+                Console.WriteLine(await request.Content.ReadAsStringAsync());
+            }
+            Console.WriteLine();
+
+            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+
+            Console.WriteLine("Response:");
+            Console.WriteLine(response.ToString());
+            if (response.Content != null)
+            {
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+            }
+            Console.WriteLine();
+
+            return response;
+        }
+    }
+    private async Task ConnectToHub()
+    {
+        string adId = await AuthService.GetUserSID();
+        _user = await UserService.GetUserByAdID(adId);
+
+        @*string baseUrl = NavManager.BaseUri;
+
+        _hubUrl = baseUrl.TrimEnd('/') + SignalRHub.HubUrl;
+
+        //IConfigurationRoot configuration = new ConfigurationBuilder()
+        //    .SetBasePath(AppContext.BaseDirectory)
+        //    .AddJsonFile("appsettings.json")
+        //    .Build();
+
+        @*var container = new CookieContainer();
+        var cookie = new Cookie()
+        {
+            Name = ".AspNetCore.Identity.Application",
+            Domain = "localhost",
+            Value = CookieProviderService.Cookie
+        };
+
+        container.Add(cookie);
+
+        _hubConnection = new HubConnectionBuilder()
+        .WithUrl(""+SignalRHub.HubUrl, options =>
+        {
+            options.Credentials = CredentialCache.DefaultNetworkCredentials;
+            //options.Cookies = container;
+        })
+        .WithAutomaticReconnect()
+        .Build();
+
+            await _hubConnection.StartAsync();*@
+
+        string baseUrl = NavigationManager.BaseUri;
+
+        _hubUrl = baseUrl.TrimEnd('/') + SignalRHub.HubUrl;
+
+        //IConfigurationRoot configuration = new ConfigurationBuilder()
+        //    .SetBasePath(AppContext.BaseDirectory)
+        //    .AddJsonFile("appsettings.json")
+        //    .Build();
+
+        var container = new CookieContainer();
+        var cookie = new Cookie()
+        {
+            Name = ".AspNetCore.Identity.Application",
+            Domain = "localhost",
+            Value = CookieProviderService.Cookie
+        };
+
+        container.Add(cookie);
+
+        //HttpClient client = new HttpClient(new LoggingHandler());
+        //await client.GetAsync(""); 
+
+        /*
+    _hubConnection = new HubConnectionBuilder()
+    .WithUrl(""+SignalRHub.HubUrl, options =>
+    {
+    options.Credentials = CredentialCache.DefaultNetworkCredentials;
+        options.HttpMessageHandlerFactory = message =>
+        {
+        return new LoggingHandler();
+        };
+        })
+        .ConfigureLogging(logging =>
+        {
+        logging.AddConsole();
+        logging.SetMinimumLevel(LogLevel.Debug);
+        })
+        .Build();
+
+        try
+        {
+        await _hubConnection.StartAsync();
+    Console.WriteLine(_hubConnection);
+        }
+        catch (HttpRequestException e)
+        {
+        Console.WriteLine(e);
+    }
+    */
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoaded = false;
+        StateHasChanged();
+
+        try
+        {
+            _isValidPage = await validateParams();
+            // throw new Exception("Test exception"); // UNCOMMENT THIS
+        }
+        catch (Exception e)
+        {
+            Error?.ProcessErrorWithCustomReturn(e, "Back to Applications", "applications");
+            return;
+        }
+
+        _isLoaded = true;
+        StateHasChanged();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!_isReadOnly) await ConnectToHub();
+        }
+        catch (Exception e)
+        {
+            _hasHubError = true;
+            Error?.LogError(e);
+        }
+    }
+
+    private string SerializeIgnoringReferences(Application application)
+    {
+        var options = new JsonSerializerOptions
+        {
+            ReferenceHandler = ReferenceHandler.Preserve,
+            WriteIndented = true,
+        };
+
+        return System.Text.Json.JsonSerializer.Serialize(application, options);
+    }
+
+
+    private async Task<bool> validateParams()
+    {
+        _app = await AppService.GetApplicationByShortID(AppShortID);
+        if (_app == null || !_app.IsComplete) return false;
+
+        bool isValidModule =  appContainsModule(ModuleName);
+        if (isValidModule)
+        {
+            bool result = Enum.TryParse<ModuleTypeEnum>(ModuleName, true, out ModuleTypeEnum moduleType);
+            if (!result)
+            {
+                isValidModule = false;
+            }
+            else
+            {
+                _tableType = moduleType;
+            }
+        }
+        return (isValidModule);
+    }
+
+    private bool appContainsModule(string name)
+    {
+        List<string> includedModulesNames = _app.GetModules().Where(pair => pair.Value != null).Select(pair => pair.Value.GetModuleType().ToString().ToLower()).ToList();
+        return includedModulesNames.Contains(name.ToLower());
+    }
+
+    private void navigateToApp()
+    {
+        NavManager.NavigateTo(Global.GetAppDetailsURL(_app.ShortID));
+    }
+
+    private async void handleApplicationSaved(bool isModified)
+    {
+        if (isModified)
+        {
+            await ModuleMetadata?.NotifyUpdate();
+            await NotifySubscribers();
+        }
+        return;
+    }
+
+    private async Task NotifySubscribers()
+    {
+        // COMMENT: Should the next two lines be here? Perhaps channel this through a service?
+        TABSDBContext dbContext = DBContextFactory.CreateInstance();
+        List<ApplicationSubscription> subs = await dbContext.ApplicationSubscriptions
+                                                        .Include(sub => sub.Application)
+                                                        .Include(sub => sub.User)
+                                                        .Where(sub => sub.ApplicationID == _app.ApplicationID)
+                                                        .AsNoTracking()
+                                                        .ToListAsync();
+
+        foreach (ApplicationSubscription sub in subs)
+        {
+            if (sub.User == null || sub.Application == null)
+            {
+                // this should never occur, but just to be safe
+                continue;
+            }
+
+            if (sub.UserID == _user.UserID)
+            {
+            // skip the user who made the change
+            continue;
+            }
+
+            ModuleUpdate notif = new ModuleUpdate()
+                {
+                    timestamp = DateTime.Now,
+                    type = (int)NotificationTypeEnum.ModuleUpdate,
+                    userID = _user.UserID,
+                    applicationID = _app.ApplicationID,
+                    moduleType = (int)_tableType
+                };
+
+            try
+            {
+                await NotificationsService.EnqueueNotification(sub.UserID, notif);
+            }
+            catch (Exception e)
+            {
+                // It is not critical to notify the user that an exception was thrown when notifying subscribers.
+                Error?.LogError(e);
+            }
+            /*await _hubConnection.SendAsync("SendNotification", sub.User.AdID, JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                {
+                    TypeNameHandling = TypeNameHandling.Auto
+                }));*/
+        }
+    }
+
+}

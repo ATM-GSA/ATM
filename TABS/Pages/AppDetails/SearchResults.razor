@@ -1,0 +1,180 @@
+﻿@using System.Globalization
+@using System.Text;
+@using System.Collections;
+@inject Global Global
+@inject SearchService _searchService
+@inject NavigationManager MyNavigationManager
+@inject IJSRuntime JS
+
+@*
+    Renders a list of filtered modules based on a search phrase.  
+*@
+
+<div class="container">
+    @if (_isLoaded && _results.Count == 0)
+    {
+        <Empty Simple Class="placeholder-content">
+            <DescriptionTemplate>@Localizer["NoResultsFound"]</DescriptionTemplate>
+        </Empty>
+    } else
+    {
+        <AntList Bordered DataSource="_results" Size="small" Class="list">
+            <ChildContent Context="item">
+                <ListItem OnClick="() => OnModuleClick(item)">
+                    <SearchItem Item="item" IsLoaded="@_isLoaded"></SearchItem>
+                </ListItem>
+            </ChildContent>
+        </AntList>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public string SearchTerm { get; set; }
+
+    [Parameter]
+    public Application App { get; set; }
+
+    private string _currSearch = "";
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private List<DetailedModuleSearchResult> _queryResults = new List<DetailedModuleSearchResult>();
+    private List<Result> _results = new List<Result>();
+
+    private bool _isLoaded = false;
+
+    private IJSObjectReference? module;
+
+    protected override async Task OnInitializedAsync()
+    {
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "./scripts/scripts.js");
+        RefreshResults();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!String.IsNullOrEmpty(SearchTerm) && SearchTerm.Trim() != "" && SearchTerm != _currSearch)
+        {
+            RefreshResults();
+        }
+    }
+
+    /// <summary>
+    /// Re-populate the search term results.
+    /// </summary>
+    public void RefreshResults()
+    {
+        _results.Clear();
+        _isLoaded = false;
+        _queryResults = _searchService.SearchApplication(App, SearchTerm, Localizer);
+
+        // populate _results list using results from database
+        foreach (DetailedModuleSearchResult res in _queryResults)
+        {
+            List<Tuple<string, ResultFieldValue>> fields = new List<Tuple<string, ResultFieldValue>>();
+            // non-nested tables
+            foreach (ModuleProperty p in res.Properties)
+            {
+                ResultFieldValue val = new ResultFieldValue()
+                {
+                    Nested = false,
+                    Value = "",
+                    ColumnMatches = new List<string>(), // This should remain empty
+                    ObjectMatches = new List<Tuple<string,string>>() // This should remain empty
+                };
+
+                if (p.Value is IList && p.Type.IsGenericType) // p.Value is a list (p may or may not be a nested table)
+                {
+                    if (res.ChildResults.Any()) 
+                    {
+                        // p is a nested table. will be handled in the loop underneath for nested table.
+                        // This continue is necessary. Don't remove this branch.
+                        continue;
+                    } else
+                    {
+                        if ((p.Value as IList).Count > 0)
+                        {
+                            // p.Value is a list but p is not a nested table. e.g., dependees/dependants lists
+                            val.Value = p.Value == null ? "" : Localizer["GlobalSearch.ListItems", (p.Value as IList).Count];
+                        } else
+                        {
+                            // p is a nested table but there are no table data matches. i.e., the match is in the table name
+                            // val.Value == ""
+                            // Keeping this branch here for clarity purposes.
+                        }
+                    }
+                } else
+                {
+                    // p is a non-nested table
+                    // "" will show "Empty" in the UI later
+                    val.Value = p.Value == null ? "" : Localizer[p.Value?.ToString()];
+                }
+
+                fields.Add(new Tuple<string, ResultFieldValue>(Localizer[p.LocalizationKey], val));
+            }
+
+            // nested tables 
+            foreach (DetailedModuleSearchResult childRes in res.ChildResults)
+            {
+                ResultFieldValue val = new ResultFieldValue()
+                    {
+                        Nested = true,
+                        Value = "", // This should remain empty
+                        ColumnMatches = new List<string>(),
+                        ObjectMatches = new List<Tuple<string, string>>()
+                    };
+                for (int i = 0; i < childRes.Properties.Count; i++)
+                {
+                    ModuleProperty p = childRes.Properties[i];
+                    SearchResultType type = childRes.PropertyResultMatchType[i];
+
+                    // check if there is a match in the field name
+                    if ((type & SearchResultType.FieldName) == SearchResultType.FieldName)
+                    {
+                        if (!val.ColumnMatches.Contains(Localizer[p.LocalizationKey])) val.ColumnMatches.Add(Localizer[p.LocalizationKey]);
+                    }
+                    // check if there is a match in the field value
+                    if ((type & SearchResultType.FieldValue) == SearchResultType.FieldValue)
+                    {
+                        val.ObjectMatches.Add(new Tuple<string, string>(Localizer[p.LocalizationKey], Localizer[p.Value.ToString()]));
+                    }
+                }
+                fields.Add(new Tuple<string, ResultFieldValue>(Localizer[childRes.Module.GetModuleType().ToString()], val));
+            }
+
+            _results.Add(new Result()
+            {
+                SearchResult = res,
+                Module = res.Module,
+                Fields = fields
+            });
+        }
+
+        // split the full search term into individual search terms
+        string[] delims = BooleanOperator.AllOperators.Select(op => op.Pattern).ToArray();
+        List<string> searchTerms = SearchTerm.Split(delims, StringSplitOptions.TrimEntries)
+            .Select(s => s.Trim())
+            .Where(s => !String.IsNullOrEmpty(s))
+            .ToList();
+
+        // do the search term matching
+        foreach (Result r in _results)
+        {
+            r.PopulateResults(searchTerms, Localizer);
+        }
+        _isLoaded = true;
+        _currSearch = SearchTerm;
+    }
+
+    /// <summary>
+    /// Navigate to the appropriate detailed module view page when the results list item is clicked.
+    /// </summary>
+    /// <param name="item"></param>
+    private void OnModuleClick(Result item)
+    {
+        MyNavigationManager.NavigateTo(Global.GetModuleDetailsURL(App.ShortID, item.Module.GetModuleType().ToString()));
+    }
+}

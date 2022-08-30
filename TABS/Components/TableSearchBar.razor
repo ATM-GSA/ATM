@@ -1,0 +1,49 @@
+﻿@typeparam T
+@inject IStringLocalizer<App> localizer
+
+<Search Placeholder="@localizer["SearchTable"]" OnInput="(e) => SearchOnChange(e)" TValue="string" @bind-Value="SearchText" WrapperStyle="max-width: 400px" ClassicSearchIcon DebounceMilliseconds="500" />
+
+
+@code
+{
+    public string SearchText { get; set; }
+
+    [Parameter]
+    // unfiltered list
+    public List<T> OriginalList { get; set; }
+
+    [Parameter]
+    // datasource for table
+    public List<T> DataSourceList { get; set; }
+
+    [Parameter]
+    // search logic
+    public Func<T, string, Task<bool>> OnSearch { get; set; }
+
+    [Parameter]
+    // update datasource in parent componenet
+    public Action<List<T>> SendList { get; set; }
+
+    private async void SearchOnChange(ChangeEventArgs value)
+    {
+        DataSourceList.Clear();
+        if (value.Value.ToString().Length >= 1)
+        {
+            foreach (var app in OriginalList)
+            {
+                bool response = await OnSearch(app, value.Value.ToString().ToLower());
+                if (response)
+                {
+                    DataSourceList.Add(app);
+                }
+            }
+
+            SendList?.Invoke(DataSourceList);
+
+        }
+        else
+        {
+            SendList?.Invoke(OriginalList.ToList());
+        }
+    }
+} 

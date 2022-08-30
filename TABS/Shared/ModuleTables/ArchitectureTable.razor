@@ -1,0 +1,125 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@implements IModuleTable
+@inject AuthService _authService
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" Title="Architecture"/>
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    private List<DataDisplay> fieldDisplay;
+    private DataTable table;
+
+
+    protected override void OnInitialized()
+    {
+        InitModuleDisplay();
+    }
+
+    private void InitModuleDisplay()
+    {
+        Architecture AppArchitecture = ApplicationObj.Architecture != null ? ApplicationObj.Architecture : new Architecture();
+        Dictionary<string, ModuleProperty> ModuleProperties = AppArchitecture.GetProperties();
+
+        fieldDisplay = new List<DataDisplay>()
+{
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "AppPlatform", Type = FieldDisplay.InputType.SingleSelect, Options=new (string, PresetColor)[] {
+                    ("WindowsServer", PresetColor.Blue), ("IIS", PresetColor.Magenta), ("Browser", PresetColor.Orange), ("N/A", PresetColor.Purple)
+                } },
+                Value = AppArchitecture.AppPlatform == null ? new ValueDisplay("N/A") : new ValueDisplay(AppArchitecture.AppPlatform)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SMARTFramework", Type = FieldDisplay.InputType.SingleSelect, Options= new (string, PresetColor)[] {
+                    ("SMARTUI", PresetColor.Red), ("United", PresetColor.Cyan), ("N/A", PresetColor.Purple)
+                } },
+                Value = AppArchitecture.SMARTFramework == null ? new ValueDisplay("N/A") : new ValueDisplay(AppArchitecture.SMARTFramework)
+            },
+
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SMARTUpgradePlanning", Type = FieldDisplay.InputType.LongText },
+                Value = AppArchitecture.SMARTUpgradePlanning == null ? new ValueDisplay("") : new ValueDisplay(AppArchitecture.SMARTUpgradePlanning)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "XmlBlob", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppArchitecture.XmlBlob.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "CDTSVersion", Type = FieldDisplay.InputType.ShortText },
+                Value = AppArchitecture.CDTSVersion == null ? new ValueDisplay("") : new ValueDisplay(AppArchitecture.CDTSVersion)
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "NETVersion", Type = FieldDisplay.InputType.ShortText },
+                Value = AppArchitecture.NETVersion == null ? new ValueDisplay("") : new ValueDisplay(AppArchitecture.NETVersion)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SEASVersion", Type = FieldDisplay.InputType.ShortText },
+                Value = AppArchitecture.SEASVersion == null ? new ValueDisplay("") : new ValueDisplay(AppArchitecture.SEASVersion)
+            }
+        };
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            if (d.Field.Type == FieldDisplay.InputType.ShortText || d.Field.Type == FieldDisplay.InputType.LongText)
+            {
+                d.Field.MaxLength = AppArchitecture.GetAttributeFrom<StringLengthAttribute>(d.Field.Name).MaximumLength;   
+            }
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+
+        StateHasChanged();
+    }
+
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+
+        if (ApplicationObj.Architecture == null)
+        {
+            ApplicationObj.Architecture = new Architecture();
+            ApplicationObj.Architecture.Application = ApplicationObj;
+            isModified = true;
+        }
+
+        foreach (DataDisplay dataDisplay in fieldDisplay)
+        {
+            DataDisplayConverter.PopulateObjWithDataDisplayValue(ApplicationObj.Architecture, typeof(Architecture), dataDisplay);
+        }
+
+        if (isModified)
+        {
+            ApplicationObj.Architecture.LastUpdate = DateTime.Now;
+            ApplicationObj.Architecture.LastModifiedBy = await _authService.GetUserSID();
+        }
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+
+        return isModified;
+    }
+
+    public void reset()
+    {
+        table.reset();
+    }
+
+    public bool hasErrors()
+    {
+        return table.checkErrors();
+    }
+
+}

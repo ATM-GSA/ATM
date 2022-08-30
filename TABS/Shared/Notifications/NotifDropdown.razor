@@ -1,0 +1,378 @@
+﻿@using TABS.Components;
+@inject NotificationsService NotificationsService
+@inject UserService UserService
+@inject ApplicationService ApplicationService
+
+@*Need to add comments to this file later*@
+
+<div>
+    <DropdownWrapper Placement=Placement.BottomRight Id="notif-dropdown" OnClick=@HandleOnClick OnBeforeDropdownDisplayIsToggled=@(async() => await UpdateReadNotifications()) >
+        <OverlayContent>
+            <div class="dropdown-container basic-container">
+                <h3>@Localizer["Notifications"]</h3>
+                <Tabs Size="@TabSize.Small" OnChange="(activeKey) => markAsReadWhenTabsChange(activeKey)">
+                    <CascadingValue Value="@_alertsCount" Name="TabCount">
+                        <TabPane Key="alerts" ForceRender="true">
+                            <TabTemplate>
+                                <TabLabelWithBadge Label="@Localizer["Alerts"]" />
+                            </TabTemplate>
+                            <ChildContent>
+                                <div class="scrollbox">
+
+                                    <div class="tab-container">
+                                        @if (_isLoading)
+                                        {
+                                            @foreach (TABS.Data.Notification notif in _alerts)
+                                            {
+                                                <div class="notif-container">
+                                                    <div class="notif-item-container">
+                                                        @if (notif.type == (int)NotificationTypeEnum.ModuleAlert)
+                                                        {
+                                                            <NotifAlertItem Alert="@(notif as TABS.Data.ModuleAlert)" App="@GetApplication(notif)"></NotifAlertItem>
+                                                        }
+                                                        else if (notif.type == (int)NotificationTypeEnum.Announcement)
+                                                        {
+                                                            <NotifAnnouncementItem Announcement="@(notif as TABS.Data.Announcement)" SenderUser="@GetUser(notif)"></NotifAnnouncementItem>
+                                                        }
+                                                    </div>
+                                                    <div class="notif-close-container">
+                                                        <Icon Type="close" Theme="outline" Class="notif-close" OnClick="@(() => OnCloseAlert(notif))" />
+                                                    </div>
+                                                </div>
+                                                <Divider Class="notif-divider"></Divider>
+
+                                                <div class="notif-end-text">
+                                                    @Localizer["Notifs.CaughtUpText"]
+                                                </div>
+                                            }
+                                        } else
+                                        {
+                                            <div class="notif-end-text">
+                                                @Localizer["Notifs.LoadingText"]
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </ChildContent>
+                        </TabPane>
+                    </CascadingValue>
+                    <CascadingValue Value="@_updatesCount" Name="TabCount">
+                        <TabPane Key="updates" ForceRender="true">
+                            <TabTemplate>
+                                <TabLabelWithBadge Label="@Localizer["Updates"]" />
+                            </TabTemplate>
+                            <ChildContent>
+                                <div class="scrollbox">
+                                    <div class="tab-container">
+                                        @if (_isLoading)
+                                        {
+                                            @foreach (TABS.Data.Notification notif in _updates)
+                                            {
+                                                <div class="notif-container">
+                                                    <div class="notif-item-container">
+                                                        <NotifUpdateItem Update="@(notif as TABS.Data.ModuleUpdate)" NotifyUpdate="@(() => StateHasChanged())" ActiveUser="User" EditorUser="@GetUser(notif)" App="@GetApplication(notif)"></NotifUpdateItem>
+                                                    </div>
+                                                    <div class="notif-close-container">
+                                                        <Icon Type="close" Theme="outline" Class="notif-close" OnClick="@(() => OnCloseUpdate(notif))" />
+                                                    </div>
+                                                </div>
+                                                <Divider Class="notif-divider"></Divider>
+                                            }
+                                            <div class="notif-end-text">
+                                                @Localizer["Notifs.CaughtUpText"]
+                                            </div>
+                                        } else
+                                        {
+                                            <div class="notif-end-text">
+                                                @Localizer["Notifs.LoadingText"]
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                </div>
+                            </ChildContent>
+                        </TabPane>
+                    </CascadingValue>
+                </Tabs>
+            </div>
+        </OverlayContent>
+        <ChildContent>
+            <Button Type="primary" Shape="circle" Size="large" style="background:transparent; border-color:transparent;">
+                <Badge Dot=@(@_bellIconNotifsCount > 0)>
+                    <Icon Type="bell" Theme="fill" />
+                </Badge>
+            </Button>
+        </ChildContent>
+    </DropdownWrapper>
+</div>
+
+@code {
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public User User { get; set; }
+
+    [Parameter]
+    public NotificationsQueue currentNotificationsQueue { get; set; }
+
+    private bool _isLoading = false;
+
+    private int _bellIconNotifsCount = 0;
+    private int _alertsCount = 0;
+    private int _updatesCount = 0;
+
+    private int tabChangeEventCount = 0;
+    private string currentActiveTab = "alerts";
+
+    private List<TABS.Data.Notification> _alerts = new List<TABS.Data.Notification>();
+    private List<TABS.Data.Notification> _updates = new List<TABS.Data.Notification>();
+    private NotificationsQueue notificationsQueue = DefaultNotificationQueue.GetDefaultNotificationQueue();
+
+    private Dictionary<int, Application> _applications = new Dictionary<int, Application>();
+    private Dictionary<int, User> _users = new Dictionary<int, User>();
+
+    protected override void OnParametersSet()
+    {
+        if (User is null) return;
+        _bellIconNotifsCount = currentNotificationsQueue.notifications.Where(n => n.unread).ToList().Count();
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (User is null) return;
+        await GetQueueFromDB();
+    }
+
+    private Application GetApplication(TABS.Data.Notification notif)
+    {
+        if (notif.type == (int)NotificationTypeEnum.ModuleAlert)
+        {
+            TABS.Data.ModuleAlert alert = notif as TABS.Data.ModuleAlert;
+            return _applications[alert.applicationID];
+
+        } else if (notif.type == (int)NotificationTypeEnum.ModuleUpdate)
+        {
+            TABS.Data.ModuleUpdate update = notif as TABS.Data.ModuleUpdate;
+            return _applications[update.applicationID];
+        }
+        return null;
+    }
+
+    private User GetUser(TABS.Data.Notification notif)
+    {
+        if (notif.type == (int)NotificationTypeEnum.Announcement)
+        {
+            TABS.Data.Announcement announcement = notif as TABS.Data.Announcement;
+            return _users[announcement.userID];
+
+        } else if (notif.type == (int)NotificationTypeEnum.ModuleUpdate)
+        {
+            TABS.Data.ModuleUpdate update = notif as TABS.Data.ModuleUpdate;
+            return _users[update.userID];
+        }
+        return null;
+    }
+
+
+    /// <summary>
+    /// Triggers on dismissal of an Update notification.
+    /// </summary>
+    /// <param name="update"></param>
+    private void OnCloseUpdate(TABS.Data.Notification update)
+    {
+        _updates.Remove(update);
+        if (update.unread) {
+            _updatesCount--;
+        }
+        RemoveNotification(update);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Triggers on dismissal of an Alert notification.
+    /// </summary>
+    /// <param name="alert"></param>
+    private void OnCloseAlert(TABS.Data.Notification alert)
+    {
+        _alerts.Remove(alert);
+        if (alert.unread)
+        {
+            _alertsCount--;
+        }
+        RemoveNotification(alert);
+        StateHasChanged();
+    }
+
+    private async void RemoveNotification(TABS.Data.Notification notif)
+    {
+        if (User is null) return;
+        List<TABS.Data.Notification> toRemove = new List<TABS.Data.Notification>();
+        toRemove.Add(notif);
+
+        await NotificationsService.RemoveNotifications(User.UserID, toRemove);
+    }
+
+    // Basic example of the DropdownWrapperOnClick event callback (feel free to delete)
+    private async void HandleOnClick(bool dropdownOpen)
+    {
+        // When the dropdown button is clicked closing the dropdown to be closed
+        // It will print "Hello world"
+        if (!dropdownOpen)
+        {
+            //Console.WriteLine("Hello world");
+            // You could for example reload notifications here
+        } else
+        {
+
+
+        }
+        // Or maybe you want to be something when the dropdown is opened
+    }
+
+    // UpdateReadNotifications executes whenever the dropdown is being opened, with the exception of the first time it opens
+    private async Task UpdateReadNotifications()
+    {
+        await GetQueueFromDB();
+        StateHasChanged();
+
+        if (currentActiveTab == "alerts")
+        {
+            await markAllAlertsAsRead();
+
+        }
+        else if (currentActiveTab == "updates")
+        {
+            await markAllUpdatesAsRead();
+        }
+
+    }
+
+
+    private async Task GetQueueFromDB()
+    {
+        if (User is null) return;
+
+        _isLoading = false;
+
+        _alerts = new List<TABS.Data.Notification>();
+        _updates = new List<TABS.Data.Notification>();
+
+        notificationsQueue = await NotificationsService.GetNotificationsQueue(User.UserID);
+        foreach (TABS.Data.Notification notif in notificationsQueue.notifications)
+        {
+            NotificationTypeEnum notificationType = (NotificationTypeEnum)notif.type;
+
+            if (notificationType == NotificationTypeEnum.Announcement)
+            {
+                _alerts.Add(notif);
+                TABS.Data.Announcement announcement = notif as TABS.Data.Announcement;
+                if (!_users.ContainsKey(announcement.userID))
+                {
+                    _users[announcement.userID] = await UserService.GetUserByUserID(announcement.userID);
+                }
+            }
+            else if (notificationType == NotificationTypeEnum.ModuleAlert)
+            {
+                TABS.Data.ModuleAlert alert = notif as TABS.Data.ModuleAlert;
+                Application currentApp = await ApplicationService.GetApplicationByID(alert.applicationID, new List<ModuleTypeEnum>() { ModuleTypeEnum.ApplicationIdentification });
+                if (currentApp == null)
+                {
+                    RemoveNotification(notif);
+                    continue;
+                }
+                _alerts.Add(notif);
+                if (!_applications.ContainsKey(alert.applicationID))
+                {
+                    _applications[alert.applicationID] = currentApp;
+                }
+            }
+            else if (notificationType == NotificationTypeEnum.ModuleUpdate)
+            {
+                TABS.Data.ModuleUpdate update = notif as TABS.Data.ModuleUpdate;
+                Application currentApp = await ApplicationService.GetApplicationByID(update.applicationID, new List<ModuleTypeEnum>() { ModuleTypeEnum.ApplicationIdentification });
+                if (currentApp == null)
+                {
+                    RemoveNotification(notif);
+                    continue;
+                }
+                _updates.Add(notif);
+                if (!_applications.ContainsKey(update.applicationID))
+                {
+                    _applications[update.applicationID] = currentApp;
+                }
+                if (!_users.ContainsKey(update.userID))
+                {
+                    _users[update.userID] = await UserService.GetUserByUserID(update.userID);
+                }
+            }
+        }
+        _updatesCount = _updates.Where(n => n.unread).ToList().Count();
+        _alertsCount = _alerts.Where(n => n.unread).ToList().Count();
+
+        _isLoading = true;
+    }
+
+    // This method is called when tabs change, but actually the tabs OnChange event also executed when the dropdown first opens. Hence why we keep track of tabsChangeEventCount
+    private async Task markAsReadWhenTabsChange(string activeKey)
+    {
+        if (tabChangeEventCount == 0)
+        {
+            await GetQueueFromDB();
+            StateHasChanged();
+            currentActiveTab = "alerts";
+            await markAllAlertsAsRead();
+        }
+        if (tabChangeEventCount > 0)
+        {
+            if (activeKey == "alerts")
+            {
+                await GetQueueFromDB();
+                StateHasChanged();
+                currentActiveTab = "alerts";
+                await markAllAlertsAsRead();
+            } else if (activeKey == "updates")
+            {
+                await GetQueueFromDB();
+                StateHasChanged();
+                currentActiveTab = "updates";
+                await markAllUpdatesAsRead();
+            }
+        }
+        tabChangeEventCount++;
+    }
+
+    private async Task markAllAlertsAsRead()
+    {
+        if (User is null) return; 
+
+        foreach (TABS.Data.Notification notif in notificationsQueue.notifications)
+        {
+            NotificationTypeEnum notificationType = (NotificationTypeEnum)notif.type;
+
+            if (notificationType == NotificationTypeEnum.Announcement || notificationType == NotificationTypeEnum.ModuleAlert)
+            {
+                notif.unread = false;
+            }
+        }
+        await NotificationsService.RewriteNotifications(User.UserID, notificationsQueue);
+    }
+
+    private async Task markAllUpdatesAsRead()
+    {
+        if (User is null) return;
+
+        foreach (TABS.Data.Notification notif in notificationsQueue.notifications)
+        {
+            NotificationTypeEnum notificationType = (NotificationTypeEnum)notif.type;
+
+            if (notificationType == NotificationTypeEnum.ModuleUpdate)
+            {
+                notif.unread = false;
+            }
+        }
+        await NotificationsService.RewriteNotifications(User.UserID, notificationsQueue);
+    }
+}

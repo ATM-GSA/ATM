@@ -1,0 +1,169 @@
+﻿@inject AuthService _authService
+@implements IModuleTable
+@using System.ComponentModel.DataAnnotations;
+
+
+<DataTable @ref="_table" @bind-ModuleData="@_fieldDisplayConfig" Title="ApplicationIdentification" />
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    private DataTable _table;
+
+    private List<DataDisplay> _fieldDisplayConfig;
+
+    private bool _defaultValueApplied = false;
+
+    protected override void OnInitialized()
+    {
+        InitFieldDisplayConfig();
+    }
+
+    private bool ShouldUseDefaultValue(string val)
+    {
+        if (val == null)
+        {
+            // If we are setting the field to a default initial value, this means that it has been modified
+            _defaultValueApplied = true;
+        }
+        return val == null;
+    }
+
+    /// <summary>
+    /// Initializes the fields in this module and sets its values to be displayed in the data table
+    /// </summary>
+    private void InitFieldDisplayConfig()
+    {
+        ApplicationIdentification AppId = ApplicationObj.Identification != null ? ApplicationObj.Identification : new ApplicationIdentification();
+
+        _fieldDisplayConfig = new List<DataDisplay>()
+        {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() {
+                    Name = "APMID",
+                    Type = FieldDisplay.InputType.Number,
+                    IntRangeMin = 0
+                },
+                Value = new ValueDisplay(AppId.APMID.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Title", Type = FieldDisplay.InputType.ShortText },
+                Value = ShouldUseDefaultValue(AppId.Title) ? new ValueDisplay("") : new ValueDisplay(AppId.Title)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Status", Type = FieldDisplay.InputType.SingleSelect,
+                    Options = new (string, PresetColor)[]{ ("Active", PresetColor.Green), ("OnHold", PresetColor.Orange), ("ToBeDecommissioned", PresetColor.Red), ("N/A", PresetColor.Blue), ("NewDevelopment", PresetColor.Volcano) }
+                },
+                Value = ShouldUseDefaultValue(AppId.Status) ? new ValueDisplay("Active") : new ValueDisplay(AppId.Status)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Visibility", Type = FieldDisplay.InputType.SingleSelect,
+                    Options = new (string, PresetColor)[]{ ("Internal", PresetColor.Magenta), ("External", PresetColor.GeekBlue), ("N/A", PresetColor.Yellow)}
+                },
+                Value = ShouldUseDefaultValue(AppId.Visibility) ? new ValueDisplay("Internal") : new ValueDisplay(AppId.Visibility)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "WebAccessibilityAssessment", Type = FieldDisplay.InputType.SingleSelect,
+                    Options = new (string, PresetColor)[]{ ("Complete", PresetColor.Green), ("NotComplete", PresetColor.Red), ("NotRequired", PresetColor.Yellow)}
+                },
+                Value = ShouldUseDefaultValue(AppId.WebAccessibilityAssessment) ? new ValueDisplay("NotComplete") : new ValueDisplay(AppId.WebAccessibilityAssessment)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() {
+                    Name = "AccessibilityComplianceScore",
+                    Type = FieldDisplay.InputType.Number,
+                    IntRangeMin = 0,
+                    IntRangeMax = 100
+                },
+                Value = new ValueDisplay(AppId.AccessibilityComplianceScore.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SWIM", Type = FieldDisplay.InputType.Boolean, Description = "Whether this is a SWIM application." },
+                Value = new ValueDisplay(AppId.SWIM.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "CMPPortfolio", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppId.CMPPortfolio.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "WebURL", Type = FieldDisplay.InputType.Link },
+                Value = ShouldUseDefaultValue(AppId.WebURL) ? new ValueDisplay("") : new ValueDisplay(AppId.WebURL)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "ClientBranch", Type = FieldDisplay.InputType.ShortText },
+                Value = ShouldUseDefaultValue(AppId.ClientBranch) ? new ValueDisplay("") : new ValueDisplay(AppId.ClientBranch)
+            },
+        };
+
+        // add localization key to all fields
+        Dictionary<string, ModuleProperty> ModuleProperties = AppId.GetProperties();
+        foreach (DataDisplay d in _fieldDisplayConfig)
+        {
+            if (d.Field.Type == FieldDisplay.InputType.ShortText || d.Field.Type == FieldDisplay.InputType.LongText)
+            {
+                d.Field.MaxLength = AppId.GetAttributeFrom<StringLengthAttribute>(d.Field.Name).MaximumLength;   
+            }
+
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+    public void reset()
+    {
+        _table.reset();
+    }
+
+    public bool hasErrors()
+    {
+        return _table.checkErrors();
+    }
+
+    /// <summary>
+    /// Update the ApplicationObj based on the data entered by the user in the data table
+    /// for the specified module.
+    /// </summary>
+    /// <returns>True if there were changes to the ApplicationObj, else False</returns>
+    public async Task<bool> saveChanges()
+    {
+        bool _isModified = _defaultValueApplied || await _table.saveModuleData();
+
+        if (ApplicationObj.Identification == null)
+        {
+            ApplicationObj.Identification = new ApplicationIdentification();
+            ApplicationObj.Identification.Application = ApplicationObj;
+            _isModified = true;
+        }
+
+        foreach (DataDisplay dataDisplay in _fieldDisplayConfig)
+        {
+            DataDisplayConverter.PopulateObjWithDataDisplayValue(
+                ApplicationObj.Identification, typeof(ApplicationIdentification), dataDisplay
+                );
+        }
+
+        if (_isModified)
+        {
+            ApplicationObj.Identification.LastUpdate = DateTime.Now;
+            ApplicationObj.Identification.LastModifiedBy = await _authService.GetUserSID();
+            await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+            _defaultValueApplied = false;
+        }
+        return _isModified;
+    }
+
+}

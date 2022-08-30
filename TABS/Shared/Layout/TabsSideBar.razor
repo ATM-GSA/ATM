@@ -1,0 +1,149 @@
+﻿@using TABS.Data
+@using TABS.Shared;
+@inject NavigationManager MyNavigationManager
+@using Microsoft.Extensions.Localization;
+@inject UserService _userService;
+@inject LayoutState LayoutState;
+
+@*
+    The TabsLayout razor file renders the layout shared between all pages of the TABS application.
+    This file checks whether a user is authorized using active directory, and only allows authorized users to access the TABS application.
+    Furthermore, the file redirects authorized users that are not registered, awaiting approval or are deactivated to the registration page.
+*@
+
+<Sider Collapsible=@true Collapsed=@LayoutState.collapsed NoTrigger Theme=@siderTheme Style="overflow: auto; height: 100vh; position: fixed; left: 0; min-width: 50px; width: fit-content;">
+
+    <div style="margin-top: 100px">
+        @if (LayoutState.collapsed)
+        {
+            <div style="display:flex; justify-content: center;"> <Icon Type="menu-unfold" Theme="outline" Class="trigger" OnClick="LayoutState.ToggleCollapse" Style="cursor: pointer; margin-top: 10px; margin-bottom: 10px; font-size: 18px; " /> </div>
+        }
+        else
+        {
+            <Icon Type="menu-fold" Theme="outline" Class="trigger" OnClick="LayoutState.ToggleCollapse" Style="cursor: pointer; margin-left: 170px; margin-top: 10px; margin-bottom: 10px; font-size: 18px;" />
+            <Menu DefaultOpenKeys=@(new string[] { "favourites", "admin_panel" })
+                  Mode=MenuMode.Inline
+                  SelectedKeys=@selectedMenuKey>
+                <MenuItem Key="" Icon="home">
+                    <NavLink href="">
+                        @Localizer["Dashboard"]
+                    </NavLink>
+                </MenuItem>
+                <MenuItem Key="applications" Icon="project">
+                    <NavLink href="applications">
+                        @Localizer["Applications"]
+                    </NavLink>
+                </MenuItem>
+                @if (isAdmin)
+                {
+                    <SubMenu Key="admin_panel" TitleTemplate=@renderAdminMenu()>
+                        <MenuItem Key="admin/usermanagement">
+                            <NavLink href="admin/usermanagement">
+                                @if (needsApprovalCount > 0)
+                                {
+                                    <span class="badge" data-badge="@needsApprovalCount.ToString()"> </span>
+
+                                }
+                                @Localizer["ManageUsers"]
+                            </NavLink>
+                        </MenuItem>
+                        <MenuItem Key="admin/announcements">
+                            <NavLink href="admin/announcements">
+                                @Localizer["Announcements"]
+                            </NavLink>
+                        </MenuItem>
+                        <MenuItem Key="admin/recovery">
+                            <NavLink href="admin/recovery">
+                                @Localizer["RecoverApplications"]
+                            </NavLink>
+                        </MenuItem>
+                    </SubMenu>
+                }
+                <SubMenu Key="favourites" TitleTemplate=@renderFavMenu()>
+                    @foreach (var application in favouriteApplications)
+                    {
+                        var link = $"applications/{application.ShortID}";
+                        <MenuItem Key=@link>
+                            <NavLink href="@link">
+                                @application.Identification.Name
+                            </NavLink>
+                        </MenuItem>
+                    }
+                </SubMenu>
+            </Menu>
+        }
+    </div>
+</Sider>
+
+<style>
+    /* Badge style from https://jsfiddle.net/kx5kow5m/3/ */
+    .badge[data-badge]:after {
+        content: attr(data-badge);
+        font-size: .7em;
+        background: #ff4d4f;
+        color: white;
+        width: auto;
+        min-width: 20px;
+        height: 20px;
+        text-align: center;
+        line-height: 18px;
+        border-radius: 50%;
+        margin-top: 9px;
+        margin-right: 7px;
+        float: left;
+        font-size: 12px;
+        padding-left: 4px;
+        padding-right: 4px;
+        padding-top: 1px;
+    }
+
+</style>
+
+
+@code {
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public List<Application> favouriteApplications { get; set; }
+
+    [Parameter]
+    public SiderTheme siderTheme { get; set; }
+
+    [Parameter]
+    public bool isAdmin { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> collapsedChanged { get; set; }
+
+    [Parameter]
+    public int needsApprovalCount { get; set; }
+
+    [Parameter]
+    public string[] selectedMenuKey { get; set; }
+
+    string generateFavouritesString()
+    {
+        return Localizer["Favourites"];
+    }
+
+    RenderFragment renderFavMenu()
+    {
+        return@<span>
+        <Icon Type="star" Theme="outline"></Icon>
+        <span>  @Localizer["Favourites"] </span>
+    </span>;
+    }
+
+    RenderFragment renderAdminMenu()
+    {
+    return @<span>
+        <Icon Type="user" Theme="outline"></Icon>
+
+        <span style="text-overflow: ellipsis; overflow: hidden;
+white-space: nowrap; display: inline-block; width: 117px; height: 25px; ">  @Localizer["AdminPanel"] </span>
+    </span>;
+
+    }
+}

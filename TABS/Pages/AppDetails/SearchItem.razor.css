@@ -1,0 +1,40 @@
+﻿.list-item {
+    display: flex;
+    align-items: center;
+}
+
+.module-name {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.tags {
+    margin: 0px 12px
+}
+
+.last-updated {
+    color: darkgrey;
+    font-size: 14px;
+}
+
+.results-body {
+    margin-top: 8px;
+}
+
+.results-fields-found-subtitle {
+    color: darkgrey;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.field-result-container {
+    display: flex;
+}
+
+.field-result-value {
+    margin-left: 4px;
+}
+
+.nested-table-container {
+    margin-left: 30px;
+}

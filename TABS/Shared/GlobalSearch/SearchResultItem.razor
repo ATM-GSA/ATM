@@ -1,0 +1,283 @@
+﻿
+<div class="search-result-container search-result-container-@((IsDarkMode ? "dark" : "light"))">
+    @if (UsePlaceholder)
+    {
+        <Skeleton Active="true"></Skeleton>
+    } 
+    else
+    {
+        <div class="search-result-header">
+            <div class="search-result-title">
+                <NavLink @onclick=@HandleClick>
+                    <div class="main-link" >
+                    @for (int i = 0; i < _Title.Content.Count; i++)
+                    {
+                        if (_Title.AddFormatting.ElementAt(i))
+                        {
+                            <b>@_Title.Content.ElementAt(i)</b>
+                        }
+                        else
+                        {
+                            @_Title.Content.ElementAt(i)
+                        }
+                    }
+                    </div>
+                </NavLink>
+            </div>
+            <Text Type="secondary" Style="font-size: 12px;">@(Tags)</Text>
+    </div>
+    <div class="search-result-subtitle">
+        @for (int i = 0; i < _Subtitle.Content.Count; i++)
+        {
+            if (_Subtitle.AddFormatting.ElementAt(i))
+            {
+                <b>@_Subtitle.Content.ElementAt(i)</b>
+            }
+            else
+            {
+                @_Subtitle.Content.ElementAt(i)
+            }
+        }
+    </div>
+    <div class="search-result-details-wrapper">
+        @foreach (FormattedString str in _Details)
+        {
+            <p class="search-result-detail">
+                @for (int i = 0; i < str.Content.Count; i++)
+                {
+                    if (str.AddFormatting.ElementAt(i))
+                    {
+                        <b>@str.Content.ElementAt(i)</b>
+                    }
+                    else
+                    {
+                        @(str.Content.ElementAt(i))
+                    }
+                }
+            </p>
+        }
+    </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public bool UsePlaceholder { get; set; } = false; 
+
+    [Parameter]
+    public string Title { get; set; } =  String.Empty;
+
+    [Parameter]
+    public string Subtitle { get; set; } =  String.Empty;
+
+    [Parameter]
+    public List<(string, string)> Details { get; set; } = new();
+
+    [Parameter] 
+    public string Link { get; set; } =  String.Empty;
+
+    [Parameter]
+    public string Tags { get; set; } =  String.Empty;
+
+    [Parameter]
+    public string MatchTerm { get; set; } =  String.Empty;
+    public List<string> MatchTerms { get; set; } = new(); // split the match term by pattern matching
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    [Parameter]
+    public bool IsDarkMode { get; set; }
+
+    class FormattedString
+    {
+        public List<string> Content { get; set; }
+        public List<bool> AddFormatting { get; set; }
+
+        public FormattedString()
+        {
+            Content = new List<string>();
+            AddFormatting = new List<bool>();
+        }
+    }
+
+    private FormattedString _Title { get; set; }
+    private FormattedString _Subtitle { get; set; }
+    private List<FormattedString> _Details { get; set; }
+
+
+    protected override void OnInitialized()
+    {
+        if (UsePlaceholder) return;
+
+        string[] delims = BooleanOperator.AllOperators.Select(op => op.Pattern).ToArray();
+        MatchTerms = MatchTerm.Split(delims, StringSplitOptions.TrimEntries)
+            .Select(s => s.Trim())
+            .Where(s => !String.IsNullOrEmpty(s))
+            .ToList();
+
+        _Title = ConvertStringToFormattedString(Title);
+        _Subtitle = ConvertStringToFormattedString(Subtitle);
+        //_Details = new List<(FormattedString, FormattedString)>();
+        _Details = new List<FormattedString>();
+        if (Details == null) return;
+        //_Details = Details.Select((_d) => (ConvertStringToFormattedString(_d.Item1), ConvertStringToFormattedString(_d.Item2))).ToList();
+        _Details = Details.Select((_d) => ConvertDetailToFormattedString(_d.Item1, _d.Item2)).ToList();
+        
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (UsePlaceholder) return;
+
+        _Title = ConvertStringToFormattedString(Title);
+        _Subtitle = ConvertStringToFormattedString(Subtitle);
+        //_Details = new List<(FormattedString, FormattedString)>();
+        _Details = new List<FormattedString>(); 
+        if (Details == null) return;
+        //_Details = Details.Select((_d) => (ConvertStringToFormattedString(_d.Item1), ConvertStringToFormattedString(_d.Item2))).ToList();
+        _Details = Details.Select((_d) => ConvertDetailToFormattedString(_d.Item1, _d.Item2)).ToList();
+
+    }
+
+    // go through all the match terms, and find where in <Title> contain those terms
+    // then for each of those substrings, note where they are so that
+    // you bold/highlight them
+
+    // Create a list of strings s ["Hello", "world", "!"], and have another
+    // array boled = [0, 1, 1] with same length as the first defined as:
+    // bolded[i] == 1 iff s[i] is a match term
+    private FormattedString ConvertStringToFormattedString(string target)
+    {
+        FormattedString fstr = new FormattedString();
+
+        while (target.Length != 0)
+        {
+            int firstMatchIndex = -1;
+            string term = "";
+
+            MatchTerms.Any(t => {
+                int idx = target.ToLower().IndexOf(t.ToLower());
+                if (idx != -1)
+                {
+                    term = t;
+                    firstMatchIndex = idx;
+                }
+                return idx != -1;
+            });
+            
+            if (firstMatchIndex == -1 || term.Length == 0)
+            {
+                fstr.Content.Add(target);
+                fstr.AddFormatting.Add(false);
+                break;
+            }
+            else
+            {
+                if (firstMatchIndex != 0)
+                {
+                    fstr.Content.Add(target.Substring(0, firstMatchIndex)); // make sure firstMatchIndex != 0
+                    fstr.AddFormatting.Add(false);
+                }
+
+                fstr.Content.Add(target.Substring(firstMatchIndex, term.Length));
+                fstr.AddFormatting.Add(true);
+                target = target.Substring(firstMatchIndex + term.Length);
+            }
+        }
+        if (fstr.Content.Count != fstr.AddFormatting.Count) throw new Exception("Error occurred while converting content");
+        return fstr;
+
+    }
+
+    private FormattedString ConvertDetailToFormattedString(string name, string content)
+    {
+        FormattedString fstr = new FormattedString();
+
+        while (name.Length != 0)
+        {
+            int firstMatchIndex = -1;
+            string term = "";
+
+            MatchTerms.Any(t => {
+                int idx = name.ToLower().IndexOf(t.ToLower());
+                if (idx != -1)
+                {
+                    term = t;
+                    firstMatchIndex = idx;
+                }
+                return idx != -1;
+            });
+
+            if (firstMatchIndex == -1 || term.Length == 0)
+            {
+                fstr.Content.Add(name);
+                fstr.AddFormatting.Add(false);
+                break;
+            }
+            else
+            {
+                if (firstMatchIndex != 0)
+                {
+                    fstr.Content.Add(name.Substring(0, firstMatchIndex)); // make sure firstMatchIndex != 0
+                    fstr.AddFormatting.Add(false);
+                }
+
+                fstr.Content.Add(name.Substring(firstMatchIndex, term.Length));
+                fstr.AddFormatting.Add(true);
+                name = name.Substring(firstMatchIndex + term.Length);
+            }
+        }
+
+        while (content.Length != 0)
+        {
+            int firstMatchIndex = -1;
+            string term = "";
+
+            MatchTerms.Any(t => {
+                int idx = content.IndexOf(t.ToLower());
+                if (idx != -1)
+                {
+                    term = t;
+                    firstMatchIndex = idx;
+                }
+                return idx != -1;
+            });
+
+            if (firstMatchIndex == -1 || term.Length == 0)
+            {
+                fstr.Content.Add(getTruncatedStringWithPadding(content, 30,30));
+                fstr.AddFormatting.Add(false);
+                break;
+            }
+            else
+            {
+                if (firstMatchIndex != 0)
+                {
+                    fstr.Content.Add(getTruncatedStringWithPadding(content.Substring(0, firstMatchIndex), 20, 20)); // make sure firstMatchIndex != 0
+                    fstr.AddFormatting.Add(false);
+                }
+
+                fstr.Content.Add(content.Substring(firstMatchIndex, term.Length));
+                fstr.AddFormatting.Add(true);
+                content = content.Substring(firstMatchIndex + term.Length);
+            }
+        }
+        if (fstr.Content.Count != fstr.AddFormatting.Count) throw new Exception("Error occurred while converting content");
+        return fstr;
+    }
+
+    private string getTruncatedStringWithPadding(string originalStr, int paddingStart, int paddingEnd)
+    {
+        int strLen = originalStr.Count();
+        if (strLen <= paddingStart + paddingEnd) return originalStr;
+        return originalStr.Substring(0, paddingStart) + " [...] " + originalStr.Substring(strLen - paddingEnd - 1);
+    }
+
+    private async void HandleClick()
+    {
+        if (UsePlaceholder) return;
+
+        await OnClick.InvokeAsync();
+    }
+}

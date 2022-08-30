@@ -1,0 +1,55 @@
+﻿@inject IStringLocalizer<App> Localizer;
+
+@if (useCustomForm)
+{
+    <div style="display: flex; justify-content: space-between; align-items:baseline; width: 100%; margin-bottom:14px;">
+        <Text>@Localizer["ContactForm.FillOutFields"]</Text>
+        <Button Size="@ButtonSize.Small" OnClick="@(() => useCustomForm = !useCustomForm)">
+            @Localizer["ContactForm.SelectExistingUser"]
+        </Button>
+    </div>
+    <CustomUserForm OnCancel="OnCancel" OnSubmitSuccess="SaveContact"/>
+}
+else
+{
+    <div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; width: 100%; margin-bottom: 14px;">
+            <Text>@Localizer["ContactForm.SelectFromList"]</Text>
+            <Button Size="@ButtonSize.Small" OnClick="@(() => useCustomForm = !useCustomForm)">
+                @(CurrentContact == null ? Localizer["ContactForm.AddCustom"]: Localizer["ContactForm.EditCurrent"])
+            </Button>
+        </div>
+        <Alert Type="@AlertType.Info"
+       Message="@Localizer["ContactForm.AutoSubscribeInfo"]"
+       ShowIcon="true" Closable Style="margin-bottom: 12px;"/>
+        <SelectUserForm SingleSelect="true" OnCancel="OnCancel" OnSubmitSuccess="SaveSelectedUser"
+            PreselectedUserIds=@((CurrentContact != null && CurrentContact.userID > -1) ? new List<int>(){CurrentContact.userID} : new List<int>() ) 
+        
+        />
+    </div>
+}
+
+@code {
+
+    private bool useCustomForm = false;
+
+    [Parameter]
+    public EventCallback<ContactInfo> OnSubmitSuccess { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    [Parameter]
+    public ContactInfo CurrentContact { get; set; }
+
+    public async Task SaveContact(ContactInfo contactInfo)
+    {
+        await OnSubmitSuccess.InvokeAsync(contactInfo);
+    }
+
+    public async Task SaveSelectedUser(List<ContactInfo> contacts)
+    {
+        await OnSubmitSuccess.InvokeAsync(contacts.Count == 1 ? contacts[0] : null);
+    }
+
+}

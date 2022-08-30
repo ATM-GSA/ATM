@@ -1,0 +1,70 @@
+﻿@page "/admin"
+
+@inject NavigationManager MyNavigationManager
+
+<AuthorizeView>
+    <Authorized>
+        @if (context.User.HasClaim("role", "Admin"))
+         {
+            <div class="ant-card ant-card-bordered ant-card-body">
+                <PageHeader>
+                    <PageHeaderTitle>
+                        @Localizer["AdminPanel"]
+                    </PageHeaderTitle>
+                </PageHeader>
+                <Divider Class="divider-header" />
+                <div class="adminOptions" style="padding: 20px;">
+                    <Row Gutter="16">
+                        <AntDesign.Col Span="8">
+                            <div @onclick="@(() => OnModuleClick("usermanagement"))">
+                                <Card Hoverable Bordered="false" Title=@Localizer["UserManagement"]>
+                                    <Body>
+                                        <p>@Localizer["Admin.UserManagementDescription"]</p>
+                                    </Body>
+                                </Card>
+                            </div>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="8">
+                            <div  @onclick="@(() => OnModuleClick("announcements"))">
+                                <Card Hoverable Bordered="false" Title=@Localizer["Announcements"]>
+                                    <Body>
+                                        <p>@Localizer["Admin.AnnouncementDescription"]</p>
+                                    </Body>
+                                </Card>
+                            </div>
+                        </AntDesign.Col>
+                        <AntDesign.Col Span="8">
+                            <div  @onclick="@(() => OnModuleClick("recovery"))">
+                                <Card Hoverable Bordered="false" Title=@Localizer["RecoverApplications"]>
+                                    <Body>
+                                        <p>@Localizer["Admin.RecoveryDescription"]</p>
+                                    </Body>
+                                </Card>
+                            </div>
+                        </AntDesign.Col>
+                    </Row>
+                </div>
+            </div>
+         }
+         else
+         {
+            <Result Status="403"
+                        Title="@Localizer["Unauthorized"]"/>
+         }
+    </Authorized>
+    <NotAuthorized>
+        <h1>@Localizer["NotAuthorized"]</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private void OnModuleClick(string url)
+    {
+        string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+        MyNavigationManager.NavigateTo(relativePath + "/" + url);
+    }
+}

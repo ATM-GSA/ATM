@@ -1,0 +1,199 @@
+﻿@using System.ComponentModel.DataAnnotations;
+@using System.Globalization;
+@using TABS.Data;
+@using Newtonsoft.Json
+
+@inject CrudService CrudService
+@inject AuthService AuthService
+@inject UserPreferenceService UserPreferenceService
+@inject UserService UserService
+@inject MessageService MsgService
+@inject NavigationManager NavManager
+
+@if (submitted)
+{
+    <Result Status="success"
+            Title="@ResultTranslations["SuccessMessage"][model.PreferrredLang]"
+            SubTitle="@ResultTranslations["SuccessDescription"][model.PreferrredLang]">
+    </Result>
+
+}
+else
+{
+    <Form @ref="form"
+          Model="@model"
+          ValidateOnChange="@true"
+          ValidateMode="@FormValidateMode.Default"
+          OnFinish="OnSubmit"
+          OnFinishFailed="OnSubmitFailed"
+          WrapperColSpan="16"
+          LabelColSpan="12"
+          Layout="@FormLayout.Vertical">
+        <FormItem Label="Primary name / Nom principal">
+            <Input @bind-Value="@context.PrimaryName" DebounceMilliseconds="500" ReadOnly Disabled="true" />
+        </FormItem>
+        <FormItem Label="Name / Nom " Required>
+            <Input @bind-Value="@context.Name" DebounceMilliseconds="500" />
+        </FormItem>
+        <FormItem Label="Email address / Adresse e-mail" Required>
+            <Input @bind-Value="@context.Email" DebounceMilliseconds="500" Placeholder="abc@example.com" />
+        </FormItem>
+        <FormItem Label="IT level / Niveau IT" Required WrapperColSpan="6">
+            <Select Mode="default"
+                    DataSource="@_positions"
+                    @bind-Value="@context.ITLevel"
+                    LabelName="@nameof(SelectOption.Name)"
+                    ValueName="@nameof(SelectOption.Value)"
+                    Placeholder="Select">
+            </Select>
+        </FormItem>
+        <FormItem Label="Preferred language / Langue préférée" Required>
+            <Select Mode="default"
+                    DataSource="@_languages"
+                    @bind-Value="@context.PreferrredLang"
+                    LabelName="@nameof(SelectOption.Name)"
+                    ValueName="@nameof(SelectOption.Value)"
+                    Placeholder="Select">
+            </Select>
+        </FormItem>
+        <FormItem>
+            <Button Type="@ButtonType.Primary" HtmlType="submit" Disabled="!(form.IsModified && form.Validate())">
+                Submit / Soumettre
+            </Button>
+        </FormItem>
+    </Form>
+}
+
+@code
+{
+    private class Model
+    {
+        [Required]
+        public string PrimaryName { get; set; }
+
+        [Required(ErrorMessage = "Required / Obligatoire")]
+        [StringLength(200, ErrorMessage = "Maximum 200 characters / caractères")]
+        public string Name { get; set; }
+
+        [Required(ErrorMessage = "Required / Obligatoire")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email. / Veuillez mettre un email valide.")]
+        [StringLength(200, ErrorMessage = "Maximum 200 characters / caractères")]
+        public string Email { get; set; }
+
+        [Required]
+        public int ITLevel { get; set; } = 1;
+        [Required]
+        public int PreferrredLang { get; set; }
+    }
+
+    private class SelectOption
+    {
+        public int Value { get; set; }
+        public string Name { get; set; }
+    }
+
+    private Form<Model> form;
+    private Model model = new Model();
+    private bool submitted = false;
+
+    private List<SelectOption> _positions = new List<SelectOption>
+{
+        new SelectOption { Value = 1, Name = "IT1" },
+        new SelectOption { Value = 2, Name = "IT2" },
+        new SelectOption { Value = 3, Name = "IT3" },
+        new SelectOption { Value = 4, Name = "IT4" },
+        new SelectOption { Value = 5, Name = "IT5" },
+    };
+
+    private List<SelectOption> _languages = new List<SelectOption>
+{
+        new SelectOption { Value = 0, Name = "English / Anglais" },
+        new SelectOption { Value = 1, Name = "French / Français" },
+    };
+
+    private readonly Dictionary<string, Dictionary<int, string>> ResultTranslations = new()
+    {
+        {
+            "SuccessMessage",
+            new Dictionary<int, string>()
+            {
+                { 0, "Your registration request has been submitted" },
+                { 1, "Votre demande d'inscription a été soumise" }
+            }
+        },
+        {
+            "SuccessDescription",
+            new Dictionary<int, string>()
+            {
+                { 0, "An admin will review your request within 3-5 business days. You will receive an email when your request has been reviewed. You may now safely exit the application."},
+                { 1, "Un administrateur examinera votre demande dans les 3 à 5 jours ouvrables. Vous recevrez un e-mail lorsque votre demande aura été examinée. Vous pouvez maintenant quitter l'application en toute sécurité." }
+            }
+        }
+    };
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        model.PrimaryName = await AuthService.GetUsersPrimaryName();
+    }
+
+    private async void OnSubmit(EditContext editContext)
+    {
+        string key = $"updatable-{DateTime.Now.Ticks}";
+        var messageConfig = new MessageConfig()
+        {
+            Content = "Submitting...",
+            Key = key
+        };
+        MsgService.Loading(messageConfig);
+
+        // Confirm user does not exist before submitting (since they might have registered on a separate tab)
+        string AdID = await AuthService.GetUserSID();
+        User user = await UserService.GetUserByAdID(AdID);
+        if (user != null)
+        {
+            // user account already exists for this AdID
+            // so refresh page
+            messageConfig.Content = "Looks like you already have an account registered! The page will refresh shortly.";
+            messageConfig.Duration = 2;
+            await MsgService.Info(messageConfig);
+
+            NavManager.NavigateTo(NavManager.Uri, forceLoad: true);
+            return;
+
+        }
+
+
+
+        User UserObj = new User();
+        UserObj.Email = model.Email;
+        UserObj.Name = model.Name;
+        UserObj.PrimaryName = model.PrimaryName;
+        UserObj.ITLevel = model.ITLevel;
+        UserObj.AdID = await AuthService.GetUserSID();
+        UserObj.RegistrationDate = DateTime.Now;
+        UserObj.Role = new Role();
+        UserObj.Role.User = UserObj;
+        UserObj.Role.PermissionLevel = 0;
+
+        string newCulture = model.PreferrredLang == 1 ? "fr-CA" : "en-US";
+        Preferences preferences = DefaultPreferences.GetDefaultPreferences();
+        preferences.language = newCulture;
+
+        UserObj.Preferences = JsonConvert.SerializeObject(preferences);
+        UserObj.Notifications = DefaultNotificationQueue.GetSerializedString();
+        await CrudService.InsertAsync(UserObj);
+        messageConfig.Content = "Submission successful!";
+        messageConfig.Duration = 2;
+        await MsgService.Success(messageConfig);
+
+        submitted = true;
+        StateHasChanged();
+
+    }
+
+    private void OnSubmitFailed(EditContext editContext)
+    {
+        // do nothing
+    }
+}

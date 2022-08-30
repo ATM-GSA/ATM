@@ -1,0 +1,382 @@
+﻿@using System.Reflection
+@inject AntDesign.ModalService _modal
+@inject TABS.Shared.LayoutState LayoutState
+@inject AntDesign.MessageService _messageService
+
+    <div class="ant-card ant-card-body" id="mainpage">
+        <div style="display: flex; justify-content: space-between; width: 100%;">
+            <div id="table-toolbar" style="width: 700px;">
+                <TABS.Components.TableSearchBar OriginalList="originalApplicationsTable" DataSourceList="applicationsTable" OnSearch="DoesApplicationContainValue" SendList="@GetFilteredList" T="ApplicationInformation"></TABS.Components.TableSearchBar>
+                @if (!IsRecovery)
+                {
+                    <ErrorBoundary>
+                        <ChildContent>
+                            <DropdownWrapper 
+                                    OverlayClassName="ant-dropdown-menu" 
+                                    Placement="@Placement.BottomLeft"
+                                    OverlayStyle="width: 310px;"
+                                    Style="display: inline;"
+                                    Id="customize-cols-dropdown"
+                            >
+                                <OverlayContent>
+                                    <div style="width: 100%; padding: 8px 12px" id="column-selector-dropdown">
+                                        <div style="display: flex; justify-content: space-between;">
+                                            <div>
+                                                @Localizer["ApplicationsTable.AdditionalColumns"]
+                                                <Popover Content="@Localizer["ApplicationsTable.SelectAdditionalColumns"]" Trigger="@(new AntDesign.Trigger[] { AntDesign.Trigger.Click })" PopupContainerSelector="#mainpage">
+                                                    <Button Icon="@IconType.Outline.InfoCircle" Type="@ButtonType.Text" Size="@ButtonSize.Small" Style="color: #8F8F8F" />
+                                                </Popover>
+                                            </div>
+                                        </div>
+
+                                        <Select Mode="multiple"
+                                                Placeholder="@Localizer["ApplicationsTable.SelectPlaceholder"]"
+                                                @bind-Values="@_selectedModuleFields"
+                                                DataSource="@_moduleFields"
+                                                ValueName="@nameof(ModuleField.Value)"
+                                                LabelName="@nameof(ModuleField.Label)"
+                                                GroupName="@nameof(ModuleField.Module)"
+                                                AllowClear
+                                                EnableSearch
+                                                Disabled="@loading"
+                                                OnSelectedItemsChanged="(items) => showCloseBtn = true"
+                                                PopupContainerSelector="#column-selector-dropdown">
+                                        </Select>
+                                    </div>
+                                </OverlayContent>
+                                <ChildContent>
+                                    <Button Type="@ButtonType.Text" >
+                                        @Localizer["ApplicationsTable.CustomizeColumns"] 
+                                        <Icon Type="down" Theme="outline" /> 
+                                    </Button>
+                                </ChildContent>
+                            </DropdownWrapper>
+                        </ChildContent>
+                        <ErrorContent>
+                            <Alert Type="@AlertType.Warning" ShowIcon="true" Closable Message="Customizing columns is unavailable..."/>
+                        </ErrorContent>
+                </ErrorBoundary>
+                }
+            </div>
+            @{
+                if (!IsRecovery)
+                {
+                    <AuthorizeView>
+                        <Authorized>
+                            @if (context.User.HasClaim("role", "Admin") || context.User.HasClaim("role", "PowerUser"))
+                            {
+                                <NavLink href="applications/add">
+                                    <Button Type="@ButtonType.Primary">
+                                        <Icon Type="plus" Theme="outline" Class="icon-plus"></Icon>
+                                        <span>@Localizer["NewApplication"]</span>
+                                    </Button>
+                                </NavLink>
+                            }
+                        </Authorized>
+                    </AuthorizeView>
+                }
+            }
+        </div>
+        <br />
+        <Spin Spinning="@loading">
+            <Table DataSource="applicationsTable"
+                   TItem="ApplicationInformation"
+                   @bind-Total="_total"
+                   @bind-PageIndex="_pageIndex"
+                   PageSize="_pageSize"
+                   ScrollX="@(_selectedModuleFields == null ? "1000" : $"{_selectedModuleFields.Count() * 200 + 1000}")"
+                   OnChange="OnFilterChanges"
+                   Size="TableSize.Small">
+
+                <Column TData="string"
+                        DataIndex="Application.Identification.Name"
+                        SorterCompare="@((a, b) => string.Compare(a, b))"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        ShowSorterTooltip="false"
+                        Title="@Localizer["Name"]"
+                        Width="180">
+                    <NavLink href=@($"applications/{context.Application.ShortID}")>@(context.Application.Identification.Name)</NavLink>
+                </Column>
+
+                <Column TData="int"
+                        DataIndex="Application.Identification.APMID"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        Filterable
+                        ShowSorterTooltip="false"
+                        Width="200" />
+
+                <Column TData="string"
+                        DataIndex="Application.Identification.Status"
+                        SorterCompare="@((a, b) => string.Compare(a, b))"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        ShowSorterTooltip="false"
+                        Title="@Localizer["Application.Identification.Status"]"
+                        Width="200"
+                        Filters="statusFilters">
+                @{
+                    PresetColor color = PresetColor.Green;
+
+                    switch (context.Application.Identification.Status)
+                    {
+                        case "New Development":
+                            color = PresetColor.Blue;
+                            break;
+
+                        case "On Hold":
+                            color = PresetColor.Orange;
+                            break;
+
+                        case "To Be Decommissioned":
+                            color = PresetColor.Red;
+                            break;
+                    }
+                }
+                    <Tag PresetColor="@color">@Localizer[context.Application.Identification.Status.Replace(" ", "")]</Tag>
+                </Column>
+
+                <Column TData="string"
+                        DataIndex="Application.Identification.WebURL"
+                        SorterCompare="@((a, b) => string.Compare(a, b))"
+                        Width="200"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        ShowSorterTooltip="false"
+                        Title="@Localizer["Application.Identification.WebURL"]">
+
+                @{
+                    string[] urls = context.Application.Identification.WebURL.Trim().Split("\n");
+                    int size = urls.Length;
+                    int count = 0;
+
+                    for (; count < Math.Min(size, 2); count++)  
+                    {
+                        <a href="@urls[count]" target="_blank">@urls[count]</a> <br />
+                    }
+
+                    if (count < size)
+                    {
+                        <NavLink href=@($"applications/{context.Application.ShortID}/ApplicationIdentification")>
+                            <Icon Type="@IconType.Outline.Ellipsis" Theme="outline" Class="icon-ellipsis" />
+                        </NavLink>
+                    }
+                }
+                </Column>
+
+                <Column TData="string"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        Title="@Localizer["Application.Contacts.Manager"]"
+                        Width="200"
+                        DataIndex="Application.Contact.Manager"
+                        ShowSorterTooltip="false">
+                    <p>@context.Application.Contact.GetManager().name</p>
+                </Column>
+
+                <Column TData="string"
+                        SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                        Title="@Localizer["Application.Contacts.TeamLead"]"
+                        Width="200"
+                        DataIndex="Application.Contact.TeamLead"
+                        ShowSorterTooltip="false">
+                    <p>@context.Application.Contact.GetTeamLead().name</p>
+                </Column>
+
+                @{
+                    if (_selectedModuleFields != null)
+                    {
+                        foreach (var column in _selectedModuleFields)
+                        {
+                            string field = column.Replace(" ", "");
+                            string name = mapper[field].Name;
+                            if (name == "ApplicationIdentification")
+                            {
+                                name = "Identification";
+                            }
+                            string index = "Application." + name + "." + field;
+
+                            <Column TData="object"
+                                    @key="@field"
+                                    DataIndex="@index"
+                                    Title="@(name != "Contact" ? @Localizer["Application." + name + "." + field] : @Localizer["Application.Contacts" + "." + field])"
+                                    Width="200"
+                                    SortDirections="new[] { AntDesign.SortDirection.Descending, AntDesign.SortDirection.Ascending }"
+                                    ShowSorterTooltip="false">
+                                @{
+                                    string value = GetColumnValue(field, context.Application);
+
+                                    if (value.StartsWith("http://") || value.StartsWith("https://"))
+                                    {
+                                        <a href="@value" target="_blank">@value</a>
+                                    }
+                                    else
+                                    {
+                                        <p>@Localizer[value]</p>
+                                    }
+                                }
+                        </Column>
+                    }
+                }
+            }
+            @{
+                    if (IsRecovery)
+                    {
+                        bool _nameNeedsToBeChanged = false;
+                        if(context.Application != null) {
+                            _nameNeedsToBeChanged = ApplicationService.IsDuplicateName(context.Application.Identification.Name, context.Application.ApplicationID);
+                        }
+                        <ActionColumn  Title="@Localizer["Actions"]" Width="200"  Fixed="right">
+                            @if(_nameNeedsToBeChanged)
+                            {
+                                <Tooltip Title="@(Localizer["ApplicationsTable.RecoveryDisabled"].ToString())">
+                                    <Button Size="@ButtonSize.Small" Type="@ButtonType.Link" Disabled="@true">
+                                        @Localizer["Restore"]
+                                    </Button>
+                                </Tooltip>
+                            }
+                            else
+                            {
+                                <Button Size="@ButtonSize.Small" Type="@ButtonType.Link" Disabled="@_restoreButtonsDisabled"
+                                        OnClick="@(() => { ShowRestoreConfirm(context.Application); StateHasChanged(); })">
+                                    @Localizer["Restore"]
+                                </Button>
+                            }
+  
+                            <Button Size="@ButtonSize.Small" Type="@ButtonType.Text" Danger OnClick="@(() => { ShowDeleteConfirm(context.Application); StateHasChanged(); })">
+                                @Localizer["Delete"]
+                            </Button>
+                        </ActionColumn>
+                    }
+                }
+            </Table>
+        </Spin>
+
+        @{
+            int _totalPages = (int)Math.Ceiling((double)_total / _pageSize);
+            <p>
+                @Localizer["Page"]: @_pageIndex / @_totalPages | @Localizer["ResultsPerPage"]:
+                <SimpleSelect DefaultValue="15" OnSelectedItemChanged="PaginationChange" Style="width: 70px;">
+                    <SelectOptions>
+                        <SimpleSelectOption Value="1" Label="1"></SimpleSelectOption>
+                        <SimpleSelectOption Value="15" Label="15"></SimpleSelectOption>
+                        <SimpleSelectOption Value="25" Label="25"></SimpleSelectOption>
+                        <SimpleSelectOption Value="100" Label="100"></SimpleSelectOption>
+                    </SelectOptions>
+                </SimpleSelect>
+                | @Localizer["TotalResults"]: @_total
+            </p>
+        }
+    </div>
+
+@code
+{
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    private bool _restoreButtonsDisabled = false;
+
+    /// <summary>
+    /// Display's a restore confirmation modal
+    /// </summary>
+    /// <param name="app">App to be restored.</param>
+    /// <returns>bool</returns>
+    private void ShowRestoreConfirm(Application app)
+    {
+        _restoreButtonsDisabled = true;
+        StateHasChanged();
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = String.Format(Localizer["ApplicationsTable.AppRestoreConfirm"], app.Identification.Name),
+            Icon =
+    @<Icon Type="exclamation-circle" Theme="outline"></Icon>,
+            Centered = true,
+            OnOk = async e =>
+            {
+                allApplications = allApplications.Where(x => x.ApplicationID != app.ApplicationID).ToList();
+                await UpdateTable(allApplications);
+                StateHasChanged();
+
+                string appStatus = await GetAppStatus(app.ShortID);
+                if(appStatus == "deleted")
+                {
+                    _messageService.Warning(Localizer["ApplicationsTable.RestoreCancelled"].ToString());
+                     _restoreButtonsDisabled = false;
+                     StateHasChanged();
+                    return;
+
+                } else if (appStatus != "restored")
+                {
+                    await RestoreApplication(app);
+                }
+                // show succces message
+                _messageService.Success(Localizer["ApplicationsTable.RecoverySuccess", app.Identification.Name].ToString());
+                // disable button
+                _restoreButtonsDisabled = false; 
+                 StateHasChanged();
+                 return;
+
+            },
+            OnCancel = e =>
+            {
+                _restoreButtonsDisabled = false; 
+                 StateHasChanged();
+                return Task.CompletedTask;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Display's a delete confirmation modal
+    /// </summary>
+    /// <param name="app">App to be deleted.</param>
+    /// <returns>bool</returns>
+    private void ShowDeleteConfirm(Application app)
+    {
+        _modal.Confirm(new ConfirmOptions()
+        {
+            Title = String.Format(Localizer["AppSettings.DeleteConfirmTitle"], app.Identification.Name),
+            Icon =@<Icon Type="exclamation-circle" Theme="outline"></Icon>
+    ,
+            Centered = true,
+            OnOk = async e =>
+            {
+                allApplications = allApplications.Where(x => x.ApplicationID != app.ApplicationID).ToList();
+                await UpdateTable(allApplications);
+                StateHasChanged();
+
+                LayoutState.OnAppDelete(app);
+                string appStatus = await GetAppStatus(app.ShortID);
+                if(appStatus == "restored")
+                {
+                    _messageService.Warning(Localizer["ApplicationsTable.DeleteCancelled"].ToString());
+                    return;
+
+                } else if (appStatus != "deleted")
+                {
+                    await DeleteApplication(app);
+                }
+                _messageService.Success(Localizer["ApplicationsTable.DeleteSuccess", app.Identification.Name].ToString());
+                return;
+            },
+            OnCancel = e =>
+            {
+                return Task.CompletedTask;
+            },
+                OkType = "danger",
+        });
+    }
+
+    private async Task<string> GetAppStatus(string shortId)
+    {
+        Application application = await ApplicationService.GetApplicationByShortID(shortId, new List<ModuleTypeEnum>());
+        if(application == null)
+        {
+            return "deleted";
+        } else if (!application.IsDeleted)
+        {
+            return "restored";
+        } else
+        {
+            return "safe";
+        }
+    }
+
+
+}

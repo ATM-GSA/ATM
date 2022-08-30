@@ -1,0 +1,75 @@
+﻿@using System.Timers;
+@implements IDisposable;
+@inject IStringLocalizer<App> Localizer
+
+<div class="@($"searchbar-container searchbar-container-{(IsDarkMode ? "dark" : "light")}")">
+    <Icon Type="search" Theme="outline" Style=@($"margin-right: 7px; color: {(IsDarkMode ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.25)")}") Height="20px" Width="20px"/>
+    <input placeholder="@Localizer["GlobalSearch.InputPlaceholder"]"
+           type="search"
+           value="@Value" 
+           maxlength="100"
+           @oninput="@((_e) => UpdateValue(_e.Value.ToString()))"
+           @onkeyup="@HandleKeyUp"
+           />
+    @if (!String.IsNullOrEmpty(Value))
+    {
+        <button id="clear-button" onclick=@(() => UpdateValue(String.Empty))>
+            <Icon Type="close-circle" Theme="fill"/>
+        </button>
+    }
+</div>
+
+@code {
+
+    [Parameter]
+    public string Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public int Debounce { get; set; } = 500; 
+
+    [Parameter]
+    public EventCallback<string> DebounceElapsed { get; set; }
+
+    [Parameter]
+    public bool IsDarkMode { get; set; } = true; 
+
+    private Timer _timer;
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(Debounce);
+        _timer.Elapsed += OnUserFinish;
+        _timer.AutoReset = false;
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        // stop previous countdown
+        _timer.Stop();
+
+        // restart _timer
+        _timer.Start();
+    }
+
+    private void UpdateValue(string newValue)
+    {
+        Value = newValue;
+        ValueChanged.InvokeAsync(newValue);
+    }
+
+    private void OnUserFinish(Object source, ElapsedEventArgs e)
+    {
+        InvokeAsync( () =>
+         {
+             DebounceElapsed.InvokeAsync(Value);
+         });
+    }
+
+    void IDisposable.Dispose()
+    {
+       _timer?.Dispose();
+    }
+}

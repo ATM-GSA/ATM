@@ -1,0 +1,264 @@
+﻿@inject UserService _userService
+@inject AuthService _authService
+@inject CrudService CrudService
+@inject IStringLocalizer<App> Localizer
+@inject TABS.Shared.LayoutState LayoutState
+@using System.ComponentModel.DataAnnotations
+
+
+<div class="ant-card ant-card-body" style="min-width: fit-content;">
+
+    @if (_showSuccessAlert)
+    {
+        <Alert Type="@AlertType.Success"
+           Message="@Localizer["Settings.UpdateDes"]"
+           Closable
+           AfterClose="HandleSuccessClose"
+           ShowIcon="true"
+           Style="margin-bottom: 20px;" />
+    }
+    @if (_showNoChangeAlert)
+    {
+        <Alert Type="@AlertType.Warning"
+           Message="@Localizer["ModulePage.NoChanges"]"
+           Closable
+           ShowIcon="true"
+           Style="margin-bottom: 20px;" />
+    }
+
+    <div style="min-width: 400px;">
+        <Form Layout="@FormLayout.Vertical"
+              Loading="@_loading"
+              OnFinish="OnFinish"
+              Model="@_profileModel"
+              WrapperColSpan="24"
+              LabelColSpan="12"
+              Style="min-width: 400px;">
+
+            <FormItem Label="@Localizer["Name"]">
+                <Input @bind-Value="@context.Name" DebounceMilliseconds="500" Style="max-width: 320px" />
+            </FormItem>
+
+            <FormItem Label="@Localizer["Email"]">
+                <Input @bind-Value="@OldEmail" Disabled Style="max-width: 320px" />
+                <Button OnClick="OpenEmailModal">@Localizer["Settings.ChangeEmailBtn"]</Button>
+            </FormItem>
+
+            <FormItem>
+                <LabelTemplate>
+                    <div style="display: flex; align-items: center;">
+                        @Localizer["ITLevel"]
+                        <Popover Content="@Localizer["Settings.ITLevelTip"]" Trigger="@(new AntDesign.Trigger[] { AntDesign.Trigger.Click })">
+                            <Icon Type="info-circle" Theme="outline" Style="margin-left: 4px; cursor: pointer;" />
+                        </Popover>
+                    </div>
+                </LabelTemplate>
+                <ChildContent>
+                    <Select Mode="default"
+                            Disabled="@NotAdmin"
+                            DataSource="@_positions"
+                            @bind-Value="@context.ITLevel"
+                            LabelName="@nameof(Position.Name)"
+                            ValueName="@nameof(Position.Value)"
+                            Placeholder="@Localizer["Settings.SelectChoose"]"
+                            Style="width: fit-content;" />
+                </ChildContent>
+            </FormItem>
+
+            <Button Type="@ButtonType.Primary" HtmlType="submit" Disabled="@_disableSubmit">
+                @Localizer["Update"]
+            </Button>
+        </Form>
+    </div>
+
+
+</div>
+
+<Modal Title="@Localizer["Settings.ModalTitle"]"
+       Visible="@_modalVisible"
+       Draggable
+       OnCancel="CloseEmailModal"
+       Footer="null"
+       Closable>
+
+    @if (_showErrorAlert)
+    {
+        <Alert Type="@AlertType.Error"
+           Message="@Localizer["Settings.ErrDes"]"
+           Closable
+           AfterClose="HandleErrorClose"
+           ShowIcon="true"
+           Style="margin-bottom: 20px;" />
+    }
+
+    <Form Layout="vertical"
+          Loading="@_loading"
+          OnFinish="UpdateEmail"
+          Model="@_emailModel">
+
+        <FormItem Label="@Localizer["Email"]">
+            <Input @bind-Value="@context.Email" DebounceMilliseconds="500" />
+        </FormItem>
+
+        <FormItem Label="@Localizer["ConfirmEmail"]">
+            <Input @bind-Value="@context.ConfirmEmail" DebounceMilliseconds="500" onpaste="return false;"/>
+        </FormItem>
+
+        <FormItem>
+            <Button Type="@ButtonType.Primary" HtmlType="submit" Disabled="@_disableSubmit">
+                @Localizer["Update"]
+            </Button>
+        </FormItem>
+    </Form>
+</Modal>
+
+
+@code {
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    private User _currUser = new User();
+    private ProfileModel _profileModel = new ProfileModel();
+    private EmailModel _emailModel = new EmailModel();
+    private bool _loading = true;
+    private bool _showSuccessAlert = false;
+    private bool _showErrorAlert = false;
+    private bool _disableSubmit = false;
+    private bool _modalVisible = false;
+    private string OldEmail { get; set; }
+    private bool NotAdmin { get; set; }
+    private bool _showNoChangeAlert = false;
+
+    public class ProfileModel
+    {
+        [Required(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_NameErr")]
+        [MaxLength(200, ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_NameLengthErr")]
+        public string Name { get; set; }
+
+        [Required(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_ITLevelErr")]
+        [Range(1, 5, ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_ITLevelErr")]
+        public int ITLevel { get; set; }
+    }
+
+    public class EmailModel
+    {
+        [Required(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_EmailErr")]
+        [EmailAddress(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_EmailErr")]
+        [MaxLength(200, ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_EmailLengthErr")]
+        [RegularExpression(@"^\S*$", ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_EmailErr")]
+        public string Email { get; set; }
+
+        [Required(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_ConfirmEmailErr")]
+        [EmailAddress(ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_ConfirmEmailErr")]
+        [MaxLength(200, ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_ConfirmEmailLengthErr")]
+        [RegularExpression(@"^\S*$", ErrorMessageResourceType = typeof(TABS.Resources.App), ErrorMessageResourceName = "Settings_EmailErr")]
+        public string ConfirmEmail { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            string AdID = await _authService.GetUserSID();
+            _currUser = await _userService.GetUserByAdID(AdID);
+            _profileModel.Name = _currUser.Name;
+            _emailModel.Email = _currUser.Email;
+            OldEmail = _currUser.Email;
+            _profileModel.ITLevel = _currUser.ITLevel;
+            NotAdmin = _currUser.Role.PermissionLevel != 3;
+        } 
+        catch (Exception e)
+        {
+            Error?.LogError(e);
+
+        } 
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private class Position
+    {
+        public int Value { get; set; }
+        public string Name { get; set; }
+    }
+
+    private List<Position> _positions = new List<Position>
+{
+        new Position { Value = 1, Name = "IT1" },
+        new Position { Value = 2, Name = "IT2" },
+        new Position { Value = 3, Name = "IT3" },
+        new Position { Value = 4, Name = "IT4" },
+        new Position { Value = 5, Name = "IT5" },
+    };
+
+    private async void OnFinish(EditContext editContext)
+    {
+
+        _showNoChangeAlert = false;
+        _showSuccessAlert = false;
+        if (NoChangesMade())
+        {
+            _showNoChangeAlert = true;
+            return;
+        }
+
+        _currUser.Name = _profileModel.Name;
+        _currUser.ITLevel = _profileModel.ITLevel;
+
+        _disableSubmit = true;
+        await CrudService.UpdateAsync(_currUser);
+        LayoutState.SetUserName(_profileModel.Name);
+        _disableSubmit = false;
+
+        _showSuccessAlert = true;
+        StateHasChanged();
+    }
+
+    private bool NoChangesMade()
+    {
+        return _currUser.Name == _profileModel.Name && _currUser.ITLevel == _profileModel.ITLevel;
+    }
+
+    private void HandleSuccessClose()
+    {
+        _showSuccessAlert = false;
+    }
+
+    private void HandleErrorClose()
+    {
+        _showErrorAlert = false;
+    }
+
+    private void OpenEmailModal()
+    {
+        _modalVisible = true;
+    }
+
+    private void CloseEmailModal()
+    {
+        _modalVisible = false;
+    }
+
+    private async void UpdateEmail(EditContext editContext)
+    {
+        _showErrorAlert = false;
+        if (_emailModel.Email == _emailModel.ConfirmEmail)
+        {
+            _showSuccessAlert = false;
+            _showNoChangeAlert = false;
+            _currUser.Email = _emailModel.Email;
+            _disableSubmit = true;
+            await CrudService.UpdateAsync(_currUser);
+            _disableSubmit = false;
+            _modalVisible = false;
+            _showSuccessAlert = true;
+            OldEmail = _emailModel.Email;
+            StateHasChanged();
+            return;
+        }
+
+        _showErrorAlert = true;
+    }
+} 

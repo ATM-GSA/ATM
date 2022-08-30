@@ -1,0 +1,44 @@
+﻿@using  System.Globalization
+@using TABS.Data
+@inject NavigationManager Nav
+@inject UserPreferenceService UserPreferenceService
+
+<p>
+    @{
+        string theme = UserPreferenceService.GetPreferences().theme == "Dark" ? "outline" : "fill";
+        string themeText = UserPreferenceService.GetPreferences().theme == "Dark" ? "Light" : "Dark";
+    }
+
+    <div style="display:flex; justify-content:center; width: 120px; cursor: pointer;" @onclick="() => ChangeTheme(themeText)">
+        <Icon Type="bulb" Theme="@theme" style="margin-top: 3px; padding-right: 5px"/>
+        @Localizer[themeText]
+    </div>
+</p>
+
+@code
+{
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    private async void ChangeTheme(string value)
+    {
+        var uri = new Uri(Nav.Uri)
+            .GetComponents(UriComponents.PathAndQuery, UriFormat.Unescaped);
+        var themeEscaped = Uri.EscapeDataString(value);
+        var uriEscaped = Uri.EscapeDataString(uri);
+
+        Preferences preferences = UserPreferenceService.GetPreferences();
+        preferences.theme = value;
+        UserPreferenceService.SetPreferences(preferences);
+        bool result = await UserPreferenceService.SaveUserPreferences();
+
+        if (result)
+        {
+
+            Nav.NavigateTo(
+                    $"Theme/Set?theme={themeEscaped}&redirectUri={uriEscaped}",
+                    forceLoad: true);
+        }
+    }
+}

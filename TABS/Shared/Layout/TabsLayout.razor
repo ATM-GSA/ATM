@@ -1,0 +1,815 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager MyNavigationManager
+@inject ApplicationService _applicationService
+@inject CrudService _crudService
+@inject UserService _userService
+@inject AuthService _authService
+@inject EmailService _emailService
+@inject UserPreferenceService _userPreferenceService
+@inject NotificationService _notice
+@inject TABS.Shared.LayoutState LayoutState
+@inject Global Global
+@inject NotificationsService NotificationsService
+@inject AntDesign.ModalService _modalService
+@inject IConfiguration _config
+@implements IDisposable
+
+@using System.Security.Principal;
+@using System;
+@using System.Timers;
+@using System.Threading; 
+@using System.Collections.Generic;
+@using System.Linq;
+@using System.Net.Http;
+@using System.Threading.Tasks;
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.Extensions.Logging;
+@using Newtonsoft.Json;
+@using Newtonsoft.Json.Linq;
+@using AntDesign.Internal;
+@using Microsoft.AspNetCore.SignalR.Client;
+@using System.Net;
+@using TABS.Data;
+@using TABS.Shared;
+@using Microsoft.Extensions.Configuration;
+@using Microsoft.Extensions.Logging.Console;
+
+
+@attribute [Authorize]
+
+
+
+
+@*
+    The TabsLayout razor file renders the layout shared between all pages of the TABS application.
+    This file checks whether a user is authorized using active directory, and only allows authorized users to access the
+    TABS application.
+    Furthermore, the file redirects authorized users that are not registered, awaiting approval or are deactivated to the
+    registration page.
+*@
+<AuthorizeView>
+    <Authorized>
+        @if (_layoutIsLoaded)
+        {
+           @if (_hasHttpRequestError)
+            {
+                <div style="padding: 20px;">
+                    <div>
+                        HttpRequestException thrown while connecting to
+                        Hub URL: @_hubUrl
+
+                        <br>
+                        Exception: @_exception
+                    </div>
+                    <Button OnClick=@(() => _hasHttpRequestError = false)>Enter app anyways</Button>
+                </div>
+            }
+            else if (_isUser && !_isAwaitingApproval && !_isDeactivated)
+            {
+                <ErrorBoundary @ref="errorBoundary">
+                    <ChildContent>
+                        <Layout Style="min-height: 100vh; ">
+                            <TabsSideBar favouriteApplications=@LayoutState.FavApps siderTheme=@siderTheme isAdmin=@context.User.HasClaim("role", "Admin") needsApprovalCount=@(LayoutState.RegistrationCount) selectedMenuKey=@selectedMenuKey/>
+                            <TabsTopBar @ref="TopBarComponent" siderTheme=@siderTheme isApproved=@(!_isAwaitingApproval) isDeactivated=@_isDeactivated user="_currUser" notificationsQueue=@queue/>
+                            <Content>
+                                <CascadingValue Name="Theme" Value="_isDarkMode">
+                                    <CascadingValue Name="IsReadOnlyUser" Value="@(!context.User.HasClaim("role", "Admin") && !context.User.HasClaim("role", "PowerUser"))">
+                                        <CascadingValue Name="IsAdmin" Value="@(context.User.HasClaim("role", "Admin"))">
+                                            <div style="margin: 30px; margin-top: 120px; margin-left: @(LayoutState.collapsed ? "110px" : "230px");">
+                                                @Body
+                                            </div>
+                                        </CascadingValue>
+                                    </CascadingValue>
+                                </CascadingValue>
+                            </Content>
+                        </Layout>
+                    </ChildContent>
+                    <ErrorContent Context="errContxt">
+                        <Error ShowAsComponent=true @ref="errorBoundaryError" CurrentException=@errContxt.ToString()/>
+                    </ErrorContent>
+                </ErrorBoundary>
+            }
+            else
+            {
+                // try user=null to make sure the code doesn't break when the user cannot be retrieved
+                <Layout Style="min-height: 100vh; ">
+                    <TabsTopBar @ref="TopBarComponent" siderTheme=@siderTheme isApproved=@(!_isAwaitingApproval) isDeactivated=@_isDeactivated user=@_currUser notificationsQueue=@null/>
+                    <Layout>
+                        <Content style="margin: 30px; margin-top: 120px;">
+                            <div style="display:flex; justify-content: center"> @Body </div>
+                        </Content>
+                    </Layout>
+                </Layout>
+            }
+        }
+        else
+        {
+            <div class="center">
+                <Spin Tip=@Localizer["Loading"] Style="font-size: 50px;" Size="large" />
+            </div>
+
+        }
+    </Authorized>
+    <NotAuthorized>
+        <h1>@Localizer["Unauthorized"]</h1>
+    </NotAuthorized>
+</AuthorizeView>
+
+
+@code {
+
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Inject]
+    public CookieProvider CookieProvider { get; set; }
+
+    [CascadingParameter]
+    public Error? Error { get; set; }
+
+    private ErrorBoundary? errorBoundary;
+    private Error? errorBoundaryError;
+
+    protected TabsTopBar TopBarComponent;
+    System.Timers.Timer timer;
+    private bool _layoutIsLoaded = false;
+    private bool _redirectionStatusChecked = false;
+    private bool _isAwaitingApproval = true;
+    private bool _isUser = false;
+    private bool _isDeactivated = false;
+    private User _currUser = new User();
+    private SiderTheme siderTheme = SiderTheme.Light;
+    private bool _isDarkMode = false;
+    private HubConnection _hubConnection;
+    private string _hubUrl;
+    string[] selectedMenuKey;
+    private Preferences Preferences = DefaultPreferences.GetDefaultPreferences();
+    private bool appUpdates = false;
+    private bool appReminders = false;
+    private bool _hasHttpRequestError = false;
+    private string _exception;
+    private NotificationsQueue queue = DefaultNotificationQueue.GetDefaultNotificationQueue(); 
+
+    internal class LoggingHandler : HttpClientHandler
+    {
+        public LoggingHandler()
+        {
+            base.UseDefaultCredentials = true;
+        }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Console.WriteLine("Request:");
+            Console.WriteLine(request.ToString());
+            if (request.Content != null)
+            {
+                Console.WriteLine(await request.Content.ReadAsStringAsync());
+            }
+            Console.WriteLine();
+
+            HttpResponseMessage response = await base.SendAsync(request, cancellationToken);
+
+            Console.WriteLine("Response:");
+            Console.WriteLine(response.ToString());
+            if (response.Content != null)
+            {
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+            }
+            Console.WriteLine();
+
+            return response;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        errorBoundary?.Recover();
+    }
+
+    /// <summary>
+    /// On component initialization, this method retrieves user information
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        // check if current user's AD id is in the user table,
+        // if they are awaiting approval and if
+        // their account has been deactivated
+        string AdID = await _authService.GetUserSID();
+        _currUser = await _userService.GetUserByAdID(AdID);
+        if (_currUser != null)
+        {
+            Console.WriteLine($"Success:{JsonConvert.SerializeObject(_currUser)}");
+            _isUser = true;
+            _isAwaitingApproval = !_currUser.Approved;
+            _isDeactivated = _currUser.IsDeactivated; 
+            _userPreferenceService.Initialize(AdID);
+            Preferences = _userPreferenceService.GetPreferences();
+            _isDarkMode = Preferences.theme == "Dark";
+            siderTheme = _isDarkMode ? SiderTheme.Dark : SiderTheme.Light;
+            LayoutState.SetUserName(_currUser.Name);
+            if (_isAwaitingApproval || _isDeactivated)
+            {
+                string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+                if (relativePath != "registration")
+                {
+                    MyNavigationManager.NavigateTo("registration");
+                }
+            } else {
+                List<User> _needsApproval = await _userService.GetNeedsApproval();
+                LayoutState.RegistrationCount = _needsApproval.Count;
+                appUpdates = Preferences.notificationPreferences.updates;
+                appReminders = Preferences.notificationPreferences.reminders;
+                List<Application> favouriteApplications = new();
+                foreach (int id in Preferences.favouriteApplications.ToList())
+                {
+                    // fetch the app and only the app identification module
+                    Application record = await _applicationService.GetApplicationByID(id, new() { ModuleTypeEnum.ApplicationIdentification });
+                    if (record != null && !record.IsDeleted)
+                    {
+                        favouriteApplications.Add(record);
+                    }
+                }
+                LayoutState.FavApps = favouriteApplications;
+                LayoutState.OnChange += StateHasChanged;
+                LayoutState.OnChange += getSideBarMenuKey;
+                MyNavigationManager.LocationChanged += updateSidebar;
+                getSideBarMenuKey();
+                LayoutState.collapsed = false;
+                queue = await NotificationsService.GetNotificationsQueue(_currUser.UserID);
+                timer = new System.Timers.Timer(5000);
+                timer.Elapsed += updateState;
+                timer.Enabled = true;
+                timer.AutoReset = false;
+            }
+        }
+        else
+        {
+            _isUser = false;
+
+            string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+            if (relativePath != "registration")
+            {
+                MyNavigationManager.NavigateTo("registration", forceLoad: true);
+                return;
+            }
+        }
+
+        //string baseUrl = MyNavigationManager.BaseUri;
+
+        //_hubUrl = baseUrl.TrimEnd('/') + SignalRHub.HubUrl;
+
+        ////IConfigurationRoot configuration = new ConfigurationBuilder()
+        ////    .SetBasePath(AppContext.BaseDirectory)
+        ////    .AddJsonFile("appsettings.json")
+        ////    .Build();
+
+        //var container = new CookieContainer();
+        //var cookie = new Cookie()
+        //{
+        //    Name = ".AspNetCore.Identity.Application",
+        //    Domain = "localhost",
+        //    Value = CookieProviderService.Cookie
+        //};
+
+        //container.Add(cookie);
+        _layoutIsLoaded = true;
+        StateHasChanged();
+        //HttpClient client = new HttpClient(new LoggingHandler());
+        //await client.GetAsync(""); 
+
+        /*
+        _hubConnection = new HubConnectionBuilder()
+        .WithUrl(""+SignalRHub.HubUrl, options =>
+        {
+        options.UseDefaultCredentials = true;
+        options.HttpMessageHandlerFactory = message =>
+        {
+        return new LoggingHandler();
+        };
+        })
+        .ConfigureLogging(logging =>
+        {
+        logging.AddConsole();
+        logging.SetMinimumLevel(LogLevel.Debug);
+        })
+        .WithAutomaticReconnect()
+        .Build();
+
+        try
+        {
+        await _hubConnection.StartAsync();
+    _hubConnection.On<string>("ReceiveNotification", ReceiveNotification);
+    Console.WriteLine(_hubConnection);
+        // throw new HttpRequestException();
+        }
+        catch (HttpRequestException e)
+        { 
+        _hasHttpRequestError = true;
+        _exception = e.Message;
+        // Error.ProcessError(e);
+
+        }
+    */
+    }
+
+    async void updateSidebar(object sender, LocationChangedEventArgs e)
+    {
+        getSideBarMenuKey();
+        List<User> _needsApproval = await _userService.GetNeedsApproval();
+        LayoutState.RegistrationCount = _needsApproval.Count;
+        StateHasChanged();
+    }
+
+    void getSideBarMenuKey()
+    {
+        string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+
+        // if the path is empty, highlight the "dashboard" option in the menu
+        if (relativePath == "" | relativePath == "/")
+        {
+            selectedMenuKey = new string[] { "" };
+        }
+        // if the path is "applications", "applications/", or "application/add", highlight the "applications" option in the menu
+        else if (relativePath == "applications" | relativePath == "applications/" | relativePath == "application/add")
+        {
+            selectedMenuKey = new string[] { "applications" };
+        }
+        // if the user is viewing an application in their favourites, highlight the particular application under favourites
+        else if (relativePath.StartsWith("applications"))
+        {
+            int slashCount = relativePath.Length - relativePath.Replace("/", "").Length;
+
+            if (slashCount == 1)
+            {
+                selectedMenuKey = new string[] { relativePath };
+            }
+            else if (slashCount > 1)
+            {
+                int firstIndex = relativePath.IndexOf('/');
+                int secondIndex = relativePath.IndexOf('/', firstIndex + 1);
+                selectedMenuKey = new string[] { relativePath.Substring(0, secondIndex) };
+            }
+        }
+        // if the path is admin, highlight the admin option in menu
+        else if (relativePath.StartsWith("admin"))
+        {
+            selectedMenuKey = new string[] { relativePath };
+        }
+        else
+        {
+            selectedMenuKey = null;
+        }
+        StateHasChanged();
+    }
+
+    private async void ReceiveNotification(string notifJsonString, TABS.Data.Notification notif)
+    {
+        await _ShowNotice(notifJsonString, notif);
+        StateHasChanged();
+    }
+
+
+    private async Task _MarkNotificationAsRead(TABS.Data.Notification notif)
+    {
+        TABS.Data.Notification notification = queue.notifications.FirstOrDefault(x => x.id == notif.id);
+        notification.unread = false;
+        await NotificationsService.RewriteNotifications(_currUser.UserID, queue);
+    }
+
+    private async Task _ShowNotice(string notifJsonString, TABS.Data.Notification notif)
+    {
+        NotificationTypeEnum notificationType;
+        Enum.TryParse<NotificationTypeEnum>(JObject.Parse(notifJsonString)["type"].ToString(), out notificationType);
+
+        string key = $"open-{JObject.Parse(notifJsonString)["id"].ToString()}-{JObject.Parse(notifJsonString)["timestamp"].ToString()}";
+
+        if (notificationType == NotificationTypeEnum.ModuleUpdate)
+        {
+            ModuleUpdate update = JsonConvert.DeserializeObject<ModuleUpdate>(notifJsonString, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto
+            });
+            User editor = await _userService.GetUserByUserID(update.userID);
+            Application app = await _applicationService.GetApplicationByID(update.applicationID, new() { ModuleTypeEnum.ApplicationIdentification });
+            ModuleTypeEnum moduleType = (ModuleTypeEnum)update.moduleType;
+
+            if (editor == null || app == null)
+            {
+                // should not happen
+                return;
+            }
+
+            //        RenderFragment btn = 
+            //            @<Button Type="@ButtonType.Primary" OnClick="async () => { await _UnsubscribeUserFromApp(app, _currUser); await _notice.Close(key); }">
+            //                @Localizer["Unsubscribe"]
+            //</Button>
+            //;
+
+            string appName = $"<a class=\"bold-text\" href=\"{Global.GetAppDetailsURL(app.ShortID)}\">{app.Identification.Name}</a>";
+
+            string msg = $"<div>{Localizer["Notifs.UpdatesTitle", appName]}</div>";
+            RenderFragment msgRender = r =>
+            {
+                r.OpenElement(1, "span");
+                r.AddMarkupContent(1, msg);
+                r.CloseElement();
+            };
+
+            string modName = $"<a class=\"bold-text\" href=\"{Global.GetModuleDetailsURL(app.ShortID, moduleType.ToString())}\">{Localizer[moduleType.ToString()]}</a>";
+            string descText = $"<div>{Localizer["Notifs.UpdateMessageTemp", editor.Name, modName]}</div>";
+
+            RenderFragment btns =
+    @<div style="display:flex; justify-content:space-between; margin-top:16px;">
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Link" Style="padding-left:0px"><NavLink href="settings?key=2">@Localizer["Notifs.TurnOffNotifs"]</NavLink></Button>
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" OnClick="async () => { await _notice.Close(key); await _MarkNotificationAsRead(notif);}">@Localizer["Notifs.MarkAsRead"]</Button>
+    </div>
+    ;
+            string desc = $"<div>{Localizer["Notifs.UpdateMessageTemp", editor.Name, modName]}</div>";
+
+
+            RenderFragment descRender = r =>
+            {
+                r.OpenElement(1, "span");
+                r.AddMarkupContent(1, desc);
+                r.AddContent(1, btns);
+                r.CloseElement();
+            };
+
+            RenderFragment icon = 
+    @<div class="temp-blue"><Icon Type="bell" Theme="outline" Style="font-size:x-large; margin-top:2px;"/></div>
+    ;
+
+            // open notice
+            await _notice.Open(new NotificationConfig()
+            {
+                Message = msgRender,
+                Duration = 5,
+                Description = descRender,
+                Icon = icon,
+                Key = key
+                //Btn = btn
+            });
+        }
+        else if (notificationType == NotificationTypeEnum.Announcement)
+        {
+            Announcement announcement = JsonConvert.DeserializeObject<Announcement>(notifJsonString, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto
+            });
+            User announcer = await _userService.GetUserByUserID(announcement.userID);
+
+            if (announcer == null)
+            {
+                // should not happen
+                return;
+            }
+
+
+            RenderFragment btns =
+    @<div style="display:flex; justify-content:space-between; margin-top:16px;">
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" OnClick="async () => { await _notice.Close(key); await _MarkNotificationAsRead(notif);}">@Localizer["Notifs.MarkAsRead"]</Button>
+    </div>;
+
+            string desc = $"<div>{announcement.message}</div><div class=\"temp-gray\" style=\"margin-top:4px;\">{@Localizer["Notifs.AnnouncementMetadata", announcer.Name, announcement.timestamp.ToString("MM/dd/yyyy")]}</div>";
+            RenderFragment descRender = r =>
+            {
+                r.OpenElement(1, "span");
+                r.AddMarkupContent(1, desc);
+                r.AddContent(1, btns);
+                r.CloseElement();
+            };
+
+            RenderFragment icon = 
+    @<div class="temp-blue"><Icon Type="notification" Theme="outline" Style="font-size:x-large; margin-top:2px;"/></div>;
+
+            bool isBodyEmpty = announcement.message == null || announcement.message.Length == 0;
+            // open notice
+            await _notice.Open(new NotificationConfig()
+            {
+                Message = announcement.title,
+                Duration = 0,
+                Description = descRender,
+                Icon = icon,
+                Key = key,
+            });
+        }
+        else if (notificationType == NotificationTypeEnum.ModuleAlert)
+        {
+            ModuleAlert alert = JsonConvert.DeserializeObject<ModuleAlert>(notifJsonString, new JsonSerializerSettings
+            {
+                TypeNameHandling = TypeNameHandling.Auto
+            });
+            Application app = await _applicationService.GetApplicationByID(alert.applicationID, new() { ModuleTypeEnum.ApplicationIdentification });
+            ModuleTypeEnum moduleType = (ModuleTypeEnum)alert.moduleType;
+
+            if (app == null)
+            {
+                // should not happen
+                return;
+            }
+
+            //RenderFragment btn = @<Button Type="@ButtonType.Primary" OnClick="async () => { await _UnsubscribeUserFromApp(app, _currUser); await _notice.Close(key); }">@Localizer["Unsubscribe"]</Button>;
+
+            RenderFragment icon = @<div class="temp-red"><Icon Type="clock-circle" Theme="outline" Style="font-size:x-large; margin-top:2px;"/></div>;
+            
+            string appName = $"<a class=\"bold-text\" href=\"{Global.GetAppDetailsURL(app.ShortID)}\">{app.Identification.Name}</a>";
+            if (app.IsDeleted)
+            {
+                appName = $"<span class=\"bold-text\"><i>Deleted application</i></span>";
+            }
+            string msg = $"<div>{Localizer["Notifs.AlertsTitle", appName]}</div>";
+            RenderFragment msgRender = r =>
+            {
+                r.OpenElement(1, "span");
+                r.AddMarkupContent(1, msg);
+                r.CloseElement();
+            };
+
+            string modName = $"<a class=\"bold-text\" href=\"{Global.GetModuleDetailsURL(app.ShortID, moduleType.ToString())}\">{Localizer[moduleType.ToString()]}</a>";
+            if (app.IsDeleted)
+            {
+                modName = $"<span class=\"bold-text\">{Localizer[moduleType.ToString()]}</span>";
+            }
+            RenderFragment btns =
+            @<div style="display:flex; justify-content:space-between; margin-top:16px;">
+                <Button Size="@ButtonSize.Small" Type="@ButtonType.Link" Style="padding-left:0px"><NavLink href="settings">@Localizer["Notifs.TurnOffNotifs"]</NavLink></Button>
+                <Button Size="@ButtonSize.Small" Type="@ButtonType.Primary" OnClick="async () => { await _notice.Close(key); }">@Localizer["Notifs.MarkAsRead"]</Button>
+    </div>
+    ;
+
+            string desc = $"<div>{Localizer["Notifs.AlertsMessage", modName, alert.nextUpdate.ToString("dddd, MMM dd, yyyy")]}</div>";
+            RenderFragment descRender = r =>
+            {
+                r.OpenElement(1, "span");
+                r.AddMarkupContent(1, desc);
+                r.AddContent(1, btns);
+                r.CloseElement();
+            };
+
+            // open notice
+            await _notice.Open(new NotificationConfig()
+            {
+                Message = msgRender,
+                Duration = 5,
+                Description = descRender,
+                Icon = icon,
+                Key = key,
+                //Btn = btn
+            });
+        }
+    }
+
+    async Task _UnsubscribeUserFromApp(Application app, User user)
+    {
+        TABSDBContext dbContext = DBContextFactory.CreateInstance();
+        ApplicationSubscription sub = await dbContext.ApplicationSubscriptions
+        .Include(sub => sub.Application)
+        .Include(sub => sub.User)
+        .Where(sub => sub.ApplicationID == app.ApplicationID && sub.UserID == user.UserID)
+        .AsNoTracking()
+        .FirstOrDefaultAsync();
+        if (sub != null)
+            await _crudService.DeleteAsync(sub);
+    }
+
+
+    void IDisposable.Dispose()
+    {
+        LayoutState.OnChange -= StateHasChanged;
+        LayoutState.OnChange -= getSideBarMenuKey;
+        // Unsubscribe from the event when our component is disposed
+        MyNavigationManager.LocationChanged -= updateSidebar;
+        timer?.Dispose();
+        // Console.WriteLine("Disposed");
+    }
+
+    /// <summary>
+    /// If the user is not registered, not approved or is deactivated, this method directs them to the registration page.
+    /// Otherwise, this method manually selects the highlighted menu option on the Ant design side bar menu based on the url path a user is on.
+    /// This is required because ant design does not highlight the correct menu item if a user navigates to a page without
+    /// using the menu. (For example, if the user navigates to the dashboard by clicking on the TABS icon instead of the dashboard menu item,
+    /// or if a user navigates to a page by typing in a url.)
+    /// Also, updates user management badge count in sidebar if there are changes.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+
+        if (_isUser && !_isAwaitingApproval && !_isDeactivated && _currUser.Notifications != null)
+        {
+            queue = await NotificationsService.GetNotificationsQueue(_currUser.UserID);
+            if (queue != null)
+            {
+                foreach (TABS.Data.Notification notif in queue.notifications)
+                {
+                    NotificationTypeEnum notificationType = (NotificationTypeEnum)notif.type;
+
+                    if (notificationType == NotificationTypeEnum.Announcement)
+                    {
+                        if (!notif.displayed)
+                        {
+                            await _ShowNotice(JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                                {
+                                    TypeNameHandling = TypeNameHandling.Auto
+                                }), notif);
+                            notif.displayed = true;
+                        }
+                    }
+                    else if (notificationType == NotificationTypeEnum.ModuleAlert)
+                    {
+                        if (!notif.displayed)
+                        {
+                            string notifJsonString = JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                                {
+                                    TypeNameHandling = TypeNameHandling.Auto
+                                });
+                            ModuleAlert alert = JsonConvert.DeserializeObject<ModuleAlert>(notifJsonString, new JsonSerializerSettings
+                                {
+                                    TypeNameHandling = TypeNameHandling.Auto
+                                });
+                            if (appReminders && (DateTime.Compare(alert.nextUpdate, DateTime.Now) >= 0))
+                            {
+                                await _ShowNotice(notifJsonString, notif);
+                                notif.displayed = true;
+                            }
+                            if (DateTime.Compare(alert.nextUpdate, DateTime.Now) < 0)
+                            {
+                                notif.displayed = true;
+                            }
+                        }
+                    }
+                    else if (notificationType == NotificationTypeEnum.ModuleUpdate)
+                    {
+                        if (!notif.displayed)
+                        {
+                            notif.displayed = true;
+
+                        }
+                    }
+                }
+                await NotificationsService.RewriteNotifications(_currUser.UserID, queue);
+            }
+        }
+    }
+
+    //protected async Task displayNewNotifications()
+    //{
+    //    if (_currUser != null && _currUser.Notifications != null)
+    //    {
+    //        queue = _currUser.GetNotifications();
+    //        foreach (TABS.Data.Notification notif in queue.notifications)
+    //        {
+    //            NotificationTypeEnum notificationType = (NotificationTypeEnum) notif.type;
+
+    //            if (!notif.displayed)
+    //            {
+    //                await _ShowNotice(JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+    //                {
+    //                    TypeNameHandling = TypeNameHandling.Auto
+    //                }));
+    //                notif.displayed = true;
+    //            }
+    //        }
+    //        await NotificationsService.RewriteNotifications(_currUser.UserID, queue);
+    //        StateHasChanged();
+    //    }
+    //}
+
+    private async Task<bool> UpdateUserAndCheckIfUserIsActive()
+    {
+        string AdID = await _authService.GetUserSID();
+        _currUser = await _userService.GetUserByAdID(AdID);
+
+        if (_currUser != null)
+        {
+            _isUser = true;
+            _isAwaitingApproval = !_currUser.Approved;
+            _isDeactivated = _currUser.IsDeactivated; 
+            return !_isAwaitingApproval && !_isDeactivated; 
+        }
+        else
+        {
+            _isUser = false;
+            return false;
+        }
+    }
+
+    private async Task<bool> CheckIfUpdatedUserRoleChanged()
+    {
+        string AdID = await _authService.GetUserSID();
+        User updatedUser = await _userService.GetUserByAdID(AdID);
+        if (updatedUser != null)
+        {
+            return updatedUser.Role.PermissionLevel != _currUser.Role.PermissionLevel;
+        }
+        return false; // return false by default
+    }
+
+
+    protected async void updateState(Object source, System.Timers.ElapsedEventArgs e)
+    {
+
+        bool _didUserRoleChange = await CheckIfUpdatedUserRoleChanged(); // this has to occur before calling UpdateUserAndCheckIfUserIsActive as the latter would update _currUser
+        if (_didUserRoleChange)
+        {
+            MyNavigationManager.NavigateTo("", forceLoad: true);
+            return;
+        }
+
+        // check if user is still active before performing any other actions
+        bool _isUserStillActive = await UpdateUserAndCheckIfUserIsActive();
+
+        if(!_isUserStillActive)
+        {
+            string relativePath = MyNavigationManager.ToBaseRelativePath(MyNavigationManager.Uri);
+            if (relativePath != "registration")
+            {
+                MyNavigationManager.NavigateTo("registration", forceLoad:true);
+            }
+            return;
+        }
+
+        _userPreferenceService.Initialize(_currUser.AdID);
+        Preferences = _userPreferenceService.GetPreferences();
+        appUpdates = Preferences.notificationPreferences.updates;
+        appReminders = Preferences.notificationPreferences.reminders;
+        //update notifications
+
+        NotificationsQueue newQueue = await NotificationsService.GetNotificationsQueue(_currUser.UserID);
+        if (newQueue.notifications.Except(queue.notifications).ToList().Any() || queue.notifications.Except(newQueue.notifications).ToList().Any())
+        {
+            queue = newQueue;
+            foreach (TABS.Data.Notification notif in queue.notifications)
+            {
+                NotificationTypeEnum notificationType = (NotificationTypeEnum) notif.type;
+
+                if (!notif.displayed)
+                {
+                    if (notificationType == NotificationTypeEnum.Announcement)
+                    {
+                        await InvokeAsync(async () =>
+                        {
+                            await _ShowNotice(JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                                {
+                                    TypeNameHandling = TypeNameHandling.Auto
+                                }), notif);
+                        });
+                        notif.displayed = true;
+                    } else if (notificationType == NotificationTypeEnum.ModuleAlert)
+                    {
+                        string notifJsonString = JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.Auto
+                        });
+                        ModuleAlert alert = JsonConvert.DeserializeObject<ModuleAlert>(notifJsonString, new JsonSerializerSettings
+                        {
+                            TypeNameHandling = TypeNameHandling.Auto
+                        });
+                        if (appReminders && (DateTime.Compare(alert.nextUpdate,DateTime.Now) >= 0) )
+                        {
+                            await InvokeAsync(async () => { await _ShowNotice(notifJsonString, notif); });
+                        }
+                        notif.displayed = true;
+                    } else if (notificationType == NotificationTypeEnum.ModuleUpdate)
+                    {
+                        if (appUpdates)
+                        {
+                            await InvokeAsync(async() => {await _ShowNotice(JsonConvert.SerializeObject(notif, new JsonSerializerSettings
+                            {
+                                TypeNameHandling = TypeNameHandling.Auto
+                            }), notif);});
+
+                        }
+                        notif.displayed = true;
+                    }
+                }
+            }
+            await NotificationsService.RewriteNotifications(_currUser.UserID, queue);
+            await InvokeAsync(() => { StateHasChanged(); });
+        }
+
+        // update fav apps 
+        List<Application> currfavApps = new();
+
+        foreach (int id in Preferences.favouriteApplications.ToList())
+        {
+            Application record = await _applicationService.GetApplicationByID(id, new() { ModuleTypeEnum.ApplicationIdentification });
+            if (record != null && !record.IsDeleted)
+            {
+                currfavApps.Add(record);
+            }
+        }
+        await InvokeAsync(() => { LayoutState.OnFavAppsChange(currfavApps); });
+
+
+        try
+        {
+            timer.Start();
+        } 
+        catch (ObjectDisposedException ex)
+        {
+            // don't need to do anything here, this is here in case of the race condition that occurs when TabsLayout is being disposed
+            // Console.WriteLine("Timer disposed while updateState was executing..");
+        }
+    }
+}

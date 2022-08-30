@@ -1,0 +1,139 @@
+﻿@page "/"
+@namespace TABS.Pages
+@using System.Globalization
+@using Microsoft.AspNetCore.Localization
+@inject UserPreferenceService UserPreferenceService
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ATM</title>
+    <base href="~/" />
+    @{
+
+        if (UserPreferenceService.GetPreferences() != null && UserPreferenceService.GetPreferences().theme == "Dark")
+        {
+            <link href="css/dark.min.css" rel="stylesheet" />
+        }
+        else
+        {
+            <link href="css/light.min.css" rel="stylesheet" />
+
+        }
+    }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet">
+    <link href="TABS.styles.css" rel="stylesheet" />
+    <link href="https://www.canada.ca/etc/designs/canada/cdts/gcweb/v4_0_39/assets/favicon.ico" rel="icon" type="image/x-icon">
+    <link href="css/tempstyles.css" rel="stylesheet" />
+</head>
+<body>
+    @{
+        string culture = UserPreferenceService.GetPreferences() != null ? UserPreferenceService.GetPreferences().language : "en-US";
+        CultureInfo.CurrentCulture = new CultureInfo(culture);
+        CultureInfo.CurrentUICulture = new CultureInfo(culture);
+        this.HttpContext.Response.Cookies.Append(
+            CookieRequestCultureProvider.DefaultCookieName,
+            CookieRequestCultureProvider.MakeCookieValue(
+                new RequestCulture(
+                    culture,
+                    culture)));
+    }
+
+    @*<div class="snowflakes" aria-hidden="true">
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+            <div class="snowflake">
+                ❅
+            </div>
+            <div class="snowflake">
+                ❆
+            </div>
+        </div>*@
+
+    @{
+        var cookie = HttpContext.Request.Cookies[".AspNetCore.Identity.Application"];
+    }
+
+    <component type="typeof(App)" param-Cookie="cookie" render-mode="Server" />
+
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+    <script>
+        // Closes any open dropdown menu in the event of outside click
+        window.onclick = function(event) {
+            var testElements = document.getElementsByClassName("ant-dropdown-trigger");
+            var testElements2 = document.getElementsByClassName("ant-dropdown");
+            var testTargets = Array.prototype.filter.call(testElements, function(testElement){
+              return testElement.contains(event.target);
+            });
+            var testTargets2 = Array.prototype.filter.call(testElements2, function(testElement){
+              return testElement.contains(event.target);
+            });
+            var isTrigger = testTargets.concat(testTargets2).length > 0;
+            if (!isTrigger) {
+              
+                var dropdowns = 
+                document.getElementsByClassName("ant-dropdown");
+                  
+                var i;
+                for (i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.style.display != 'none') {
+                        openDropdown.style.display = 'none';
+                        console.log("outside dropdown clicked, display: none");
+                    }
+                }
+            }
+        }
+       </script>
+
+    @*<link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet" />*@
+    <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
+</body>
+</html>

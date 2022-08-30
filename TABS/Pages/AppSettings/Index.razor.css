@@ -1,0 +1,68 @@
+﻿.page-header-title {
+    display: flex;
+    align-items: center;
+}
+
+::deep .divider-header {
+    margin:8px 0px 8px 0px;
+}
+
+.content-title {
+    margin: 0px;
+    font-size: 16px;
+    font-style: italic;
+    color: darkgrey;
+}
+
+::deep .divider-body {
+    margin: 8px 0px 8px 0px
+}
+
+.body-subheader {
+    width: 100%;
+    margin: 24px 0px 16px 0px;
+    font-size: 16px;
+    font-weight: bold
+}
+
+.rename-content {
+    display: flex;
+    margin-bottom: 2px;
+}
+
+.edit-name-message {
+    margin-bottom: 16px;
+}
+
+::deep .rename-input {
+    width: 600px;
+}
+
+::deep .rename-button {
+    font-size: 14px;
+    margin-left: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.actions-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 24px;
+    margin: 8px 0px;
+}
+
+.actions-title {
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.actions-subtitle {
+    margin: 0px 12px 0px 0px;
+    font-size: 12px;
+    font-weight: 500;
+}

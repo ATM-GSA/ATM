@@ -1,0 +1,19 @@
+﻿@page "/applications"
+@inject IStringLocalizer<App> Localizer
+
+<div class="ant-card ant-card-bordered ant-card-body">
+    <PageHeader>
+        <PageHeaderBreadcrumb>
+            <Breadcrumb>
+                <BreadcrumbItem>
+                    @Localizer["Applications"]
+                </BreadcrumbItem>
+            </Breadcrumb>
+        </PageHeaderBreadcrumb>
+        <PageHeaderTitle>
+            @Localizer["Applications"]
+        </PageHeaderTitle>
+    </PageHeader>
+    <Divider Style="margin: 0px 0px;" />
+    <ApplicationsTable IsRecovery=false />
+</div>

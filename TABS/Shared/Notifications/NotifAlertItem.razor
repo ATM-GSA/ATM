@@ -1,0 +1,127 @@
+﻿@inject ApplicationService ApplicationService
+@inject CrudService CrudService
+@inject Global Global
+
+@if (_isLoaded)
+{
+    <div class="alert-content">
+        <div class="temp-red">
+            <Icon Type="clock-circle" Theme="outline" Class="alert-icon" />
+        </div>
+        <div class="alert-body">
+            <div class="alert-title">
+                @getAlertsUpdateTitle()
+            </div>
+            <div class="alert-message">
+                @getAlertsUpdateMessage()
+            </div>
+        </div>
+    </div>
+} else
+{
+    <Skeleton Active=true />
+}
+
+
+@code {
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    [Parameter]
+    public TABS.Data.ModuleAlert Alert { get; set; }
+
+    [Parameter]
+    public Application App { get; set; }
+
+    private bool _isLoaded = false;
+
+    private ModuleTypeEnum _module = ModuleTypeEnum.Undefined;
+
+    protected override void OnInitialized()
+    {
+        _module = (ModuleTypeEnum) Alert.moduleType;
+
+        _isLoaded = true;
+    }
+
+    protected override void OnParametersSet()
+    {
+        _module = (ModuleTypeEnum) Alert.moduleType;
+
+        _isLoaded = true;
+    }
+
+    /// <summary>
+    /// Return the RenderFragment representing the Title text on an Alert item.
+    /// </summary>
+    /// <returns></returns>
+    private RenderFragment getAlertsUpdateTitle()
+    {
+        string link;
+        string title;
+        if (App != null)
+        {
+            if (!App.IsDeleted)
+            {
+                link = $"<a href=\"{GetAppDetailsLink()}\" class=\"regular-text-color\">{App.Identification.Name}</a>";
+                title = $"<span class=\"bold-text\">{link}</span>"; 
+            } else
+            {
+                link = $"<span class=\"regular-text-color\">{App.Identification.Name} <i>(deleted)</i></span>";
+                title = $"<span class=\"bold-text\">{link}</span>";
+            }
+        } else
+        {
+            title = $"<span class=\"bold-text\"><i>Deleted Application</i></span>"; // TODO: Localize "Deleted App"
+        }
+        string localization = Localizer["Notifs.AlertsTitle", title];
+
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    /// <summary>
+    /// Return the RenderFragment representing the Message text on an Alert item.
+    /// </summary>
+    /// <returns></returns>
+    private RenderFragment getAlertsUpdateMessage()
+    {
+        string link;
+        string module;
+        if (App != null && !App.IsDeleted)
+        {
+            // TODO: Should probably check if the module is still present if it's an optional module 
+            link = $"<a href=\"{GetModDetailsLink()}\">{Localizer[_module.ToString()]}</a>";
+            module = $"<span class=\"temp-blue\">{link}</span>";
+
+        } else
+        {
+            // TODO: Should probably check if the module is still present if it's an optional module 
+            module = $"<span>{Localizer[_module.ToString()]}</span>";
+        }
+        string date = $"<span class=\"temp-red\">{Alert.nextUpdate.ToString("MM/dd/yyyy h:mm tt")}</span>";
+        string localization = Localizer["Notifs.AlertsMessage", module, date];
+        RenderFragment render = r =>
+        {
+            r.OpenElement(1, "span");
+            r.AddMarkupContent(1, localization);
+            r.CloseElement();
+        };
+        return render;
+    }
+
+    private string GetAppDetailsLink()
+    {
+        return Global.GetAppDetailsURL(App.ShortID);
+    }
+
+    private string GetModDetailsLink()
+    {
+        return Global.GetModuleDetailsURL(App.ShortID, _module.ToString());
+    }
+}

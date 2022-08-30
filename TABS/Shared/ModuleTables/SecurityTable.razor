@@ -1,0 +1,220 @@
+﻿@implements IModuleTable
+@using TABS.Shared.NestedTables
+@using System.ComponentModel.DataAnnotations
+@inject CrudService _crudService
+@inject AuthService _authService
+
+<DataTable @ref="table" @bind-ModuleData="@fieldDisplay" NestedRenderItems="nestedItems" Title="Security" />
+
+@code {
+
+    [Parameter]
+    public Application ApplicationObj { get; set; } = new Application();
+
+    [Parameter]
+    public EventCallback<Application> ApplicationObjChanged { get; set; }
+
+    private List<DataDisplay> fieldDisplay;
+    private Dictionary<string, ModuleProperty> ModuleProperties;
+
+    private DataTable table;
+
+    private bool isFortifyModified = true;
+
+    private List<RenderFragment> nestedItems = new List<RenderFragment>();
+    private FortifyReportsTable reportsTable;
+    private List<FortifyScan> fortifyScans;
+
+
+    protected override void OnInitialized()
+    {
+        initModuleDisplay();
+        nestedItems.Add(@<FortifyReportsTable @ref="reportsTable" Scans="@fortifyScans" />
+    );
+    }
+
+    private void initModuleDisplay()
+    {
+
+        Security AppSecurity = ApplicationObj.Security != null ? ApplicationObj.Security : new Security();
+        ModuleProperties = AppSecurity.GetProperties();
+
+        fieldDisplay = new List<DataDisplay>()
+        {
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SQLSSLEncryption", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.SQLSSLEncryption.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "AttachmentDropZone", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.AttachmentDropZone.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "AuditLogs", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.AuditLogs.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "WebconfigEncrpted", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.WebconfigEncrpted.ToString())
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "WAFTest", Type = FieldDisplay.InputType.Date },
+                Value = AppSecurity.WAFTest == null ? new ValueDisplay(DateTime.Now.ToString("MMMM dd, yyyy")) : new ValueDisplay(AppSecurity.WAFTest?.ToString("MMMM dd, yyyy"))
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "WAFStatus", Type = FieldDisplay.InputType.Date },
+                Value = AppSecurity.WAFStatus == null ? new ValueDisplay(DateTime.Now.ToString("MMMM dd, yyyy")) : new ValueDisplay(AppSecurity.WAFStatus?.ToString("MMMM dd, yyyy"))
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "Exempt", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.Exempt.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "ExemptionReasoning", Type = FieldDisplay.InputType.LongText },
+                Value = AppSecurity.ExemptionReasoning == null ? new ValueDisplay("") : new ValueDisplay(AppSecurity.ExemptionReasoning)
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SecurityLevel", Type = FieldDisplay.InputType.ShortText },
+                Value = AppSecurity.SecurityLevel == null ? new ValueDisplay("") : new ValueDisplay(AppSecurity.SecurityLevel)
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SatoExpiry", Type = FieldDisplay.InputType.Date },
+                Value = AppSecurity.SatoExpiry == null ? new ValueDisplay(DateTime.Now.ToString("MMMM dd, yyyy")) : new ValueDisplay(AppSecurity.SatoExpiry?.ToString("MMMM dd, yyyy"))
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "SAD", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.SAD.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "ICAP", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.ICAP.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "HSTS", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.HSTS.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "StaticRemediationCompleted", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.StaticRemediationCompleted.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "DynamicRemediationCompleted", Type = FieldDisplay.InputType.Boolean },
+                Value = new ValueDisplay(AppSecurity.DynamicRemediationCompleted.ToString())
+
+            },
+            new DataDisplay()
+            {
+                Field = new FieldDisplay() { Name = "FortifyScans", Type = FieldDisplay.InputType.NestedTable },
+                Value = new ValueDisplay("0")
+            }
+
+        };
+
+        // Preparing fortify scan data
+        fortifyScans = (ApplicationObj.Security == null || ApplicationObj.Security.FortifyScans == null) ?
+        new List<FortifyScan>() : ApplicationObj.Security.FortifyScans.Select(scan => scan).ToList();
+
+        // add localization key to all fields
+        foreach (DataDisplay d in fieldDisplay)
+        {
+            if (d.Field.Type == FieldDisplay.InputType.ShortText || d.Field.Type == FieldDisplay.InputType.LongText)
+            {
+                d.Field.MaxLength = AppSecurity.GetAttributeFrom<StringLengthAttribute>(d.Field.Name).MaximumLength;   
+            }
+            d.Field.LocalizationKey = ModuleProperties[d.Field.Name].LocalizationKey;
+        }
+    }
+
+
+    public async Task<bool> saveChanges()
+    {
+        bool isModified = await table.saveModuleData();
+        bool isFortifyModified = reportsTable != null && reportsTable.HasChanges(); // reportsTable may be null if it was not expanded
+
+        if (!isModified && !isFortifyModified && ApplicationObj.Security != null)
+        {
+            return false;
+        }
+
+        if (ApplicationObj.Security == null)
+        {
+            ApplicationObj.Security = new Security();
+            ApplicationObj.Security.Application = ApplicationObj;
+            isModified = true;
+        }
+
+        if (isModified)
+        {
+            foreach (DataDisplay dataDisplay in fieldDisplay)
+            {
+                DataDisplayConverter.PopulateObjWithDataDisplayValue(ApplicationObj.Security, typeof(Security), dataDisplay);
+            }
+        }
+
+        if (reportsTable != null && isFortifyModified)
+        {
+            List<FortifyScan> updatedFortifyScans = reportsTable.GetUpdatedScans();
+            List<FortifyScan> deletedExistingScans = reportsTable.GetDeletedScans();
+
+            ApplicationObj.Security.FortifyScans = updatedFortifyScans.Select(scan =>
+            {
+                if (scan.Security == null)
+                {
+                    scan.Security = ApplicationObj.Security;
+                    scan.FortifyScanId = default;
+                }
+                return scan;
+            }).ToList();
+
+            // Delete the fortify scans from the database
+            foreach (FortifyScan scan in deletedExistingScans)
+            {
+                scan.Security = null; // need to null this to chill out the entity tracker
+                await _crudService.DeleteAsync(scan);
+            }
+
+            fortifyScans = ApplicationObj.Security.FortifyScans;
+        }
+
+        ApplicationObj.Security.LastUpdate = DateTime.Now;
+        ApplicationObj.Security.LastModifiedBy = await _authService.GetUserSID();
+
+        await ApplicationObjChanged.InvokeAsync(ApplicationObj);
+        StateHasChanged();
+
+        return true;
+    }
+
+    public bool hasErrors()
+    {
+        return table.checkErrors();
+    }
+
+    public void reset()
+    {
+        table?.reset();
+        reportsTable?.ResetToDefault();
+        StateHasChanged();
+    }
+}

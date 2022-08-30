@@ -1,0 +1,36 @@
+﻿::deep .status-tag {
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+::deep .divider-header {
+    margin: 0px;
+}
+
+.divider-body {
+    margin: 10px 0px 30px 0px;
+}
+
+::deep .exclamation-circle {
+    margin-right: 4px;
+}
+
+::deep .tooltip-right {
+    float: right;
+}
+
+::deep .view-switch-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: x-large;
+    border: none;
+    box-shadow: none;
+    padding: 4px;
+    background-color: transparent;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+}

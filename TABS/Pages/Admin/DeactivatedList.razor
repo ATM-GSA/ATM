@@ -1,0 +1,77 @@
+﻿@using TABS.Data
+@using TABS.Data.Auth
+@using Microsoft.Extensions.Localization;
+
+<Table TItem="User" DataSource="@DeactivatedUsers" Context="user" @bind-Total="_total" @bind-PageIndex="_pageIndexDeactivated" PageSize="_pageSizeDeactivated" Size="@TableSize.Small">
+    <Column Title="@Localizer["Name"]" @bind-Field="@user.Name" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["Email"]" @bind-Field="@user.Email" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["ITLevel"]" @bind-Field="@user.ITLevel" ShowSorterTooltip="false" Sortable Filterable></Column>
+    <Column Title="@Localizer["Role"]" TData="int" DataIndex="Role.PermissionLevel" ShowSorterTooltip="false" SortDirections="new[] {SortDirection.Descending, SortDirection.Ascending}" Filterable>
+        @if (user.Role.PermissionLevelBeforeDelete == 3)
+        {
+            <Tag Color="green">@Localizer["Admin"]</Tag>
+        }
+        else if (user.Role.PermissionLevelBeforeDelete == 2)
+        {
+            <Tag Color="geekblue">@Localizer["PowerUser"]</Tag>
+        }
+        else if (user.Role.PermissionLevelBeforeDelete == 1)
+        {
+            <Tag Color="purple">@Localizer["ReadOnly"]</Tag>
+        }
+    </Column>
+    <ActionColumn Title="@Localizer["Actions"]">
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Link" OnClick="@(async () => { user.IsDeactivated = false; await ActivateAsync.InvokeAsync(user); StateHasChanged(); })" Disabled="!user.IsDeactivated">@Localizer["Reactivate"]</Button>
+        <Button Size="@ButtonSize.Small" Type="@ButtonType.Text" Danger Disabled="user.Role.PermissionLevelBeforeDelete == (int) RoleEnums.Roles.Admin" OnClick="@(async () => { await ShowDeleteConfirm.InvokeAsync(user); StateHasChanged(); })">@Localizer["Delete"]</Button>
+    </ActionColumn>
+</Table>
+
+@{
+    int _totalPages = (int)Math.Ceiling((double)_total / _pageSizeDeactivated);
+    <p>
+        @Localizer["Page"] @_pageIndexDeactivated of @_totalPages | @Localizer["ResultsPerPage"]:
+        <SimpleSelect DefaultValue="5" OnSelectedItemChanged="PaginationChange" Style="width: 70px;">
+            <SelectOptions>
+                <SimpleSelectOption Value="1" Label="1"></SimpleSelectOption>
+                <SimpleSelectOption Value="5" Label="5"></SimpleSelectOption>
+                <SimpleSelectOption Value="25" Label="25"></SimpleSelectOption>
+                <SimpleSelectOption Value="100" Label="100"></SimpleSelectOption>
+            </SelectOptions>
+        </SimpleSelect>
+        | @Localizer["TotalResults"]: @_total
+    </p>
+}
+
+@code {
+    [Parameter]
+    public List<User> DeactivatedUsers { get; set; }
+
+    [Parameter]
+    public int _total { get; set; }
+
+    [Parameter]
+    public EventCallback<User> ActivateAsync { get; set; }
+
+    [Parameter]
+    public EventCallback<User> DeleteAsync { get; set; }
+
+    [Parameter]
+    public EventCallback<User> ShowDeleteConfirm { get; set; }
+
+    [Inject]
+    public IStringLocalizer<App> Localizer { get; set; }
+
+    int _pageSizeDeactivated = 5;
+    int _pageIndexDeactivated = 1;
+
+
+    /// <summary>
+    /// Change number of rows displayed on each table page
+    /// </summary>
+    /// <param name="number"></param>
+    private void PaginationChange(string number)
+    {
+        _pageSizeDeactivated = Int32.Parse(number);
+        StateHasChanged();
+    }
+}

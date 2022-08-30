@@ -1,0 +1,126 @@
+﻿@inject WidgetState WidgetState
+@inject IStringLocalizer<App> Localizer
+@implements IDisposable
+
+<div class="widget-card-wrapper">
+    <div @onclick="@changeSelectionStatus">
+        @if (isSelected()) {
+            <div style="position: absolute; top: 8px; right: 8px; z-index: 5;">
+                <Icon Style="font-size: 18px; color: #1890ff" Type="check-circle" Theme="fill"/>
+            </div>
+        }
+        @*Card description has a 108 character limit when tested with the widest character, capital "W"*@
+        <Card Class="individual-widget-card individual-widget-card-background" Style=@generateCardCSS() Bordered Hoverable Cover=@generateCoverFragment(widgetName, isDarkMode)>
+            <CardMeta Style="margin-bottom: 20px;" Title=@Localizer[widgetName] Description=@Localizer[@generateLocalizerString(widgetName)] />
+        </Card>
+    </div>
+    @if (isSelected())
+    {
+        <RadioGroup @bind-Value="FullWidth" ButtonStyle="@RadioButtonStyle.Solid" Size="small" Style="position: absolute; bottom: 15px; left: 23px;">
+            <Radio RadioButton Value=@false> @Localizer["HalfWidth"] </Radio>
+            <Radio RadioButton Value=@true> @Localizer["FullWidth"] </Radio>
+        </RadioGroup>
+    }
+</div>
+<style type="text/css">
+
+    .individual-widget-card {
+        height: 365px;
+    }
+
+    @@media (max-width: 770px) {
+        .individual-widget-card {
+            height: 320px;
+        }
+    }
+</style>
+
+
+@code {
+
+    [Parameter]
+    public bool isDarkMode { get; set; }
+
+    [Parameter]
+    public string widgetName { get; set; }
+
+    bool fullWidth;
+
+    public bool FullWidth
+    {
+        get { return fullWidth; }
+        set
+        {
+            fullWidth = value;
+            WidgetState.SetWidthOfHiddenWidget(widgetName, value);
+        }
+    }
+
+    private RenderFragment contactCardImage =@<div style="display: flex; justify-content: center; margin-top: 10px;  height: 130px; overflow: hidden"><img style="object-fit: scale-down; width: 90%;" alt="example" src="Images/Contact.PNG" /> </div>;
+    private RenderFragment contactCardImageDark =@<div style="display: flex; justify-content: center; margin-top: 10px; height: 130px; overflow: hidden"><img style="object-fit: scale-down; width: 90%;" alt="example" src="Images/Contact-dark.PNG" /></div>;
+
+    protected override void OnInitialized()
+    {
+        WidgetState.OnChange += StateHasChanged;
+        fullWidth = WidgetState.GetWidthOfHiddenWidget(widgetName);
+    }
+
+    bool isSelected()
+    {
+        return WidgetState.widgetsToAdd.FindIndex(f => f.widgetName == widgetName) >= 0;
+    }
+
+    string generateCardCSS() {
+        if (isSelected()) {
+            return "border: 2px solid #1890ff";
+        } else {
+            return "";
+        }
+    }
+
+    void changeSelectionStatus() {
+        if (isSelected()) {
+            WidgetState.UnselectWidgetToAdd(widgetName);
+        } else {
+            WidgetState.SelectWidgetToAdd(widgetName);
+        }
+        StateHasChanged();
+    }
+
+    RenderFragment generateCoverFragment(string widgetName, bool _isDarkMode) {
+        if (widgetName == "Contact") 
+        {
+            if (!_isDarkMode) {
+                return contactCardImage;
+            } else {
+                return contactCardImageDark;
+            }
+        } else
+        {
+            return null;
+        }
+    }
+
+    string generateLocalizerString(string widgetName)
+    {
+        if (widgetName == "Calendar") 
+        {
+            return "Dashboard.CalendarWidgetDescription";
+        } else if (widgetName == "Reminders") 
+        {
+            return "Dashboard.RemindersWidgetDescription";
+        } else if (widgetName == "Contact") 
+        {
+            return "Dashboard.ContactWidgetDescription";
+        } else
+        {
+            return "";
+        }
+    }
+
+    public void Dispose()
+    {
+        WidgetState.OnChange -= StateHasChanged;
+    }
+
+}
