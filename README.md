@@ -1,12 +1,10 @@
 <h2>Welcome to Environment and Climate Change Canada’s open-source repository for the Application Tracking Manager (ATM).</h2>
 
-<p>
-This project began as a research and development initiative intended to explore Blazor for future use within ECCC’s Reusable Application Division (RAD). The project uses <a href="https://github.com/ant-design-blazor">Ant Design Blazor</a> as its front-end component library and <a href="https://github.com/dotnet/blazor">Blazor Server</a> for the backend.<br>
+<p>The Application Tracking Manager project began as a research and development initiative intended to explore Blazor for future use within ECCC’s Reusable Applications Division (RAD). It is now relied upon by several development teams, and provides a centralized and authoritative resource for managing information about the RAD’s software applications.<br>
 
-The project has a focus on modular design, with the intention of providing users with several customization options for applications stored in the system. Additionally, this modular design was chosen to improve project maintainability and reduce the overhead required when modules need to be added or removed from the system. <br>
+ATM utilizes <a href="https://github.com/ant-design-blazor">Ant Design Blazor</a> as its front-end component library and <a href="https://github.com/dotnet/blazor">Blazor Server</a> for the backend. With a focus on modular design, ATM provides users with a significant amount of customizability for the applications stored in the system. The modular design was chosen specifically to provide an excellent user experience, improve project maintainability, and reduce the overhead required when reporting modules need to be added or removed from the system.<br>
 
-ATM is designed, developed, and supported by a team of students and has become a valuable tool for ECCC’s RAD. The project will continue to receive future updates and each major release will be merged to the open-source repository. 
-</p>
+ATM is designed, developed, and supported by a team of student developers and has become an invaluable tool for ECCC’s Reusable Applications Division. The project will continue to receive future updates and each major release will be merged to this open-source repository.</p>
 
  <img src="https://szcz.dev/files/atm.png" alt="ATM"> 
 
